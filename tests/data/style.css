@@ -1,0 +1,16 @@
+/* basic css */
+body {
+    background-color: white;
+    color: black;
+}
+
+h1 {
+    font-size: 2em;
+    font-weight: bold;
+    color: navy;
+}
+
+p {
+    font-size: 1.2em;
+    color: gray;
+}

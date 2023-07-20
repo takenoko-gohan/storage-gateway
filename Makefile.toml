@@ -1,0 +1,25 @@
+[tasks.localstack-setup]
+command = "docker"
+args = ["run", "--rm", "-it", "-d", "--name", "localstack", "-p", "4566:4566", "-e", "SERVICES=s3", "localstack/localstack"]
+
+[tasks.localstack-teardown]
+command = "docker"
+args = ["kill", "localstack"]
+
+[tasks.create-bucket]
+env = { AWS_ACCESS_KEY_ID = "test", AWS_SECRET_ACCESS_KEY = "test" }
+script = [
+    "aws --endpoint-url=http://localhost:4566 s3 mb s3://localhost",
+    "aws --endpoint-url=http://localhost:4566 s3 sync ./tests/data s3://localhost",
+]
+
+[tasks.local-setup]
+run_task = { name = [
+    "localstack-setup",
+    "create-bucket",
+], fork = true }
+
+[tasks.local-teardown]
+run_task = { name = [
+    "localstack-teardown",
+], fork = true }
