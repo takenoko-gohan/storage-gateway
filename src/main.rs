@@ -7,20 +7,9 @@ use std::convert::Infallible;
 use std::net::SocketAddr;
 
 #[tokio::main]
-//async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 async fn main() {
     tracing_subscriber::fmt().init();
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 80));
-    let svc = make_service_fn(|_conn| async { Ok::<_, Infallible>(service_fn(handler)) });
-    let server = Server::bind(&addr).serve(svc);
-
-    if let Err(e) = server.await {
-        tracing::error!("server error: {}", e);
-    }
-}
-
-async fn handler(req: Request<Body>) -> Result<Response<Body>, Infallible> {
     let s3_config = if std::env::var("ENV").unwrap_or("hoge".to_string()) == "local" {
         tracing::info!("local mode");
         let cred = Credentials::new("dummy", "dummy", None, None, "dummy");
@@ -34,6 +23,19 @@ async fn handler(req: Request<Body>) -> Result<Response<Body>, Infallible> {
     };
     let s3_client = Client::from_conf(s3_config);
 
+    let addr = SocketAddr::from(([0, 0, 0, 0], 80));
+    let svc = make_service_fn(|_conn| {
+        let s3 = s3_client.clone();
+        async move { Ok::<_, Infallible>(service_fn(move |req| handler(req, s3.clone()))) }
+    });
+    let server = Server::bind(&addr).serve(svc);
+
+    if let Err(e) = server.await {
+        tracing::error!("server error: {}", e);
+    }
+}
+
+async fn handler(req: Request<Body>, s3_client: Client) -> Result<Response<Body>, Infallible> {
     let host = req.headers().get("host").unwrap().to_str().unwrap();
     let key = req.uri().path().to_string();
     let key = key.trim_start_matches('/');
@@ -49,17 +51,17 @@ async fn handler(req: Request<Body>) -> Result<Response<Body>, Infallible> {
         Ok(obj) => obj,
         Err(e) => {
             tracing::error!("error: {:?}", e);
-            return if e.into_service_error().is_invalid_object_state() {
+            return if e.into_service_error().is_no_such_key() {
                 Ok(Response::builder()
                     .header("Content-Type", "text/plain")
                     .status(StatusCode::NOT_FOUND)
-                    .body(Body::empty())
+                    .body(Body::from(StatusCode::NOT_FOUND.to_string()))
                     .unwrap())
             } else {
                 Ok(Response::builder()
                     .header("Content-Type", "text/plain")
                     .status(StatusCode::INTERNAL_SERVER_ERROR)
-                    .body(Body::empty())
+                    .body(Body::from(StatusCode::INTERNAL_SERVER_ERROR.to_string()))
                     .unwrap())
             };
         }
@@ -69,6 +71,7 @@ async fn handler(req: Request<Body>) -> Result<Response<Body>, Infallible> {
 
     let res = Response::builder().status(StatusCode::OK);
     let res = match key.split('.').last() {
+        Some("txt") => res.header("Content-Type", "text/plain"),
         Some("html") => res.header("Content-Type", "text/html"),
         Some("css") => res.header("Content-Type", "text/css"),
         Some("js") => res.header("Content-Type", "text/javascript"),
