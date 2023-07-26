@@ -2,7 +2,7 @@ use aws_sdk_s3::config::Credentials;
 use aws_sdk_s3::{config, Client, Config};
 use aws_types::region::Region;
 use hyper::service::{make_service_fn, service_fn};
-use hyper::{Body, Request, Response, Server, StatusCode};
+use hyper::{Body, HeaderMap, Request, Response, Server, StatusCode};
 use std::convert::Infallible;
 use std::net::SocketAddr;
 
@@ -36,7 +36,17 @@ async fn main() {
 }
 
 async fn handler(req: Request<Body>, s3_client: Client) -> Result<Response<Body>, Infallible> {
-    let host = req.headers().get("host").unwrap().to_str().unwrap();
+    let host = match get_host(req.headers()) {
+        Ok(host) => host,
+        Err(e) => {
+            tracing::error!("Failed to get host: {:?}", e);
+            return Ok(Response::builder()
+                .header("Content-Type", "text/plain")
+                .status(StatusCode::BAD_REQUEST)
+                .body(Body::from(StatusCode::BAD_REQUEST.to_string()))
+                .unwrap());
+        }
+    };
     let key = req.uri().path().to_string();
     let key = key.trim_start_matches('/');
     tracing::info!("host: {}, key: {}", host, key);
@@ -50,7 +60,7 @@ async fn handler(req: Request<Body>, s3_client: Client) -> Result<Response<Body>
     {
         Ok(obj) => obj,
         Err(e) => {
-            tracing::error!("error: {:?}", e);
+            tracing::error!("Failed to get object: {:?}", e);
             return if e.into_service_error().is_no_such_key() {
                 Ok(Response::builder()
                     .header("Content-Type", "text/plain")
@@ -89,4 +99,15 @@ async fn handler(req: Request<Body>, s3_client: Client) -> Result<Response<Body>
     let res = res.body(Body::from(b)).unwrap();
 
     Ok(res)
+}
+
+fn get_host(headers: &HeaderMap) -> Result<String, Box<dyn std::error::Error>> {
+    let host = headers
+        .get("host")
+        .ok_or("Host header not found")?
+        .to_str()?
+        .split(':')
+        .next()
+        .ok_or("Failed split host")?;
+    Ok(host.to_string())
 }
