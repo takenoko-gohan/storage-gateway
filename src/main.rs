@@ -1,13 +1,21 @@
+mod io;
+
+use crate::io::TokioIo;
 use aws_sdk_s3::config::Credentials;
 use aws_sdk_s3::{config, Client, Config};
 use aws_types::region::Region;
-use hyper::service::{make_service_fn, service_fn};
-use hyper::{Body, HeaderMap, Request, Response, Server, StatusCode};
-use std::convert::Infallible;
+use bytes::Bytes;
+use http_body_util::combinators::BoxBody;
+use http_body_util::{BodyExt, Full};
+use hyper::body::Incoming;
+use hyper::server::conn::http1;
+use hyper::service::service_fn;
+use hyper::{HeaderMap, Request, Response, StatusCode};
 use std::net::SocketAddr;
+use tokio::net::TcpListener;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     tracing_subscriber::fmt().init();
 
     let s3_config = if std::env::var("ENV").unwrap_or("hoge".to_string()) == "local" {
@@ -24,18 +32,27 @@ async fn main() {
     let s3_client = Client::from_conf(s3_config);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 80));
-    let svc = make_service_fn(|_conn| {
-        let s3 = s3_client.clone();
-        async move { Ok::<_, Infallible>(service_fn(move |req| handler(req, s3.clone()))) }
-    });
-    let server = Server::bind(&addr).serve(svc);
+    let listener = TcpListener::bind(&addr).await?;
 
-    if let Err(e) = server.await {
-        tracing::error!("server error: {}", e);
+    loop {
+        let (stream, _) = listener.accept().await?;
+        let io = TokioIo::new(stream);
+        let s3_client = s3_client.clone();
+        tokio::spawn(async move {
+            if let Err(e) = http1::Builder::new()
+                .serve_connection(io, service_fn(move |req| handler(req, s3_client.clone())))
+                .await
+            {
+                tracing::warn!("Failed to serve connection: {:?}", e);
+            }
+        });
     }
 }
 
-async fn handler(req: Request<Body>, s3_client: Client) -> Result<Response<Body>, Infallible> {
+async fn handler(
+    req: Request<Incoming>,
+    s3_client: Client,
+) -> Result<Response<BoxBody<Bytes, hyper::Error>>, hyper::Error> {
     let host = match get_host(req.headers()) {
         Ok(host) => host,
         Err(e) => {
@@ -43,7 +60,7 @@ async fn handler(req: Request<Body>, s3_client: Client) -> Result<Response<Body>
             return Ok(Response::builder()
                 .header("Content-Type", "text/plain")
                 .status(StatusCode::BAD_REQUEST)
-                .body(Body::from(StatusCode::BAD_REQUEST.to_string()))
+                .body(full(StatusCode::BAD_REQUEST.to_string()))
                 .unwrap());
         }
     };
@@ -65,13 +82,13 @@ async fn handler(req: Request<Body>, s3_client: Client) -> Result<Response<Body>
                 Ok(Response::builder()
                     .header("Content-Type", "text/plain")
                     .status(StatusCode::NOT_FOUND)
-                    .body(Body::from(StatusCode::NOT_FOUND.to_string()))
+                    .body(full(StatusCode::NOT_FOUND.to_string()))
                     .unwrap())
             } else {
                 Ok(Response::builder()
                     .header("Content-Type", "text/plain")
                     .status(StatusCode::INTERNAL_SERVER_ERROR)
-                    .body(Body::from(StatusCode::INTERNAL_SERVER_ERROR.to_string()))
+                    .body(full(StatusCode::INTERNAL_SERVER_ERROR.to_string()))
                     .unwrap())
             };
         }
@@ -96,9 +113,15 @@ async fn handler(req: Request<Body>, s3_client: Client) -> Result<Response<Body>
         Some("json") => res.header("Content-Type", "application/json"),
         _ => res.header("Content-Type", "text/plain"),
     };
-    let res = res.body(Body::from(b)).unwrap();
+    let res = res.body(full(b)).unwrap();
 
     Ok(res)
+}
+
+fn full<T: Into<Bytes>>(chunk: T) -> BoxBody<Bytes, hyper::Error> {
+    Full::new(chunk.into())
+        .map_err(|never| match never {})
+        .boxed()
 }
 
 fn get_host(headers: &HeaderMap) -> Result<String, Box<dyn std::error::Error>> {
