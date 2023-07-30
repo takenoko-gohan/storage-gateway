@@ -4,6 +4,8 @@ use bytes::Bytes;
 use http_body_util::combinators::BoxBody;
 use hyper::body::Incoming;
 use hyper::{HeaderMap, Request, Response, StatusCode};
+use std::net::Ipv4Addr;
+use std::str::FromStr;
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 
@@ -19,10 +21,18 @@ pub async fn handler(
         }
     };
     let key = req.uri().path().to_string();
-    let key = key.trim_start_matches('/');
-    tracing::info!("host: {}, key: {}", host, key);
 
-    response::s3_object_response(s3_client, &host, key).await
+    match Ipv4Addr::from_str(&host) {
+        Ok(_) => match key.as_str() {
+            "/health" => response::easy_response(StatusCode::OK),
+            _ => response::easy_response(StatusCode::NOT_FOUND),
+        },
+        Err(_) => {
+            let key = key.trim_start_matches('/');
+            tracing::info!("bucket: {}, key: {}", host, key);
+            response::s3_object_response(s3_client, &host, key).await
+        }
+    }
 }
 
 fn get_host(headers: &HeaderMap) -> Result<String, Error> {
