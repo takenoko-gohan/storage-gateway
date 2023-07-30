@@ -61,14 +61,16 @@ pub async fn s3_object_response(
         Some("css") => res.header("Content-Type", "text/css"),
         Some("js") => res.header("Content-Type", "text/javascript"),
         Some("xml") => res.header("Content-Type", "text/xml"),
+        Some("csv") => res.header("Content-Type", "text/csv"),
         Some("png") => res.header("Content-Type", "image/png"),
         Some("jpg") => res.header("Content-Type", "image/jpeg"),
         Some("jpeg") => res.header("Content-Type", "image/jpeg"),
         Some("gif") => res.header("Content-Type", "image/gif"),
         Some("svg") => res.header("Content-Type", "image/svg+xml"),
         Some("webp") => res.header("Content-Type", "image/webp"),
-        Some("ico") => res.header("Content-Type", "image/x-icon"),
+        Some("ico") => res.header("Content-Type", "image/vnd.microsoft.icon"),
         Some("json") => res.header("Content-Type", "application/json"),
+        Some("pdf") => res.header("Content-Type", "application/pdf"),
         _ => res.header("Content-Type", "text/plain"),
     };
     let res = res.body(full(b))?;
