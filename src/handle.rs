@@ -15,10 +15,7 @@ pub async fn handler(
         Ok(host) => host,
         Err(e) => {
             tracing::error!("Failed to get host: {:?}", e);
-            return Ok(Response::builder()
-                .header("Content-Type", "text/plain")
-                .status(StatusCode::BAD_REQUEST)
-                .body(response::full(StatusCode::BAD_REQUEST.to_string()))?);
+            return response::easy_response(StatusCode::BAD_REQUEST);
         }
     };
     let key = req.uri().path().to_string();
@@ -36,17 +33,9 @@ pub async fn handler(
         Err(e) => {
             tracing::error!("Failed to get object: {:?}", e);
             return if e.into_service_error().is_no_such_key() {
-                Ok(Response::builder()
-                    .header("Content-Type", "text/plain")
-                    .status(StatusCode::NOT_FOUND)
-                    .body(response::full(StatusCode::NOT_FOUND.to_string()))?)
+                response::easy_response(StatusCode::NOT_FOUND)
             } else {
-                Ok(Response::builder()
-                    .header("Content-Type", "text/plain")
-                    .status(StatusCode::INTERNAL_SERVER_ERROR)
-                    .body(response::full(
-                        StatusCode::INTERNAL_SERVER_ERROR.to_string(),
-                    ))?)
+                response::easy_response(StatusCode::INTERNAL_SERVER_ERROR)
             };
         }
     };
@@ -55,12 +44,7 @@ pub async fn handler(
         Ok(b) => b.into_bytes(),
         Err(e) => {
             tracing::error!("Failed to collect body: {:?}", e);
-            return Ok(Response::builder()
-                .header("Content-Type", "text/plain")
-                .status(StatusCode::INTERNAL_SERVER_ERROR)
-                .body(response::full(
-                    StatusCode::INTERNAL_SERVER_ERROR.to_string(),
-                ))?);
+            return response::easy_response(StatusCode::INTERNAL_SERVER_ERROR);
         }
     };
 
