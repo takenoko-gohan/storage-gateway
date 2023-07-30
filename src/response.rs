@@ -25,7 +25,7 @@ pub fn easy_response(status_code: StatusCode) -> Result<Response, Error> {
     };
 
     Ok(hyper::Response::builder()
-        .header("Content-Type", "text/plain")
+        .header("Content-Type", mime::TEXT_PLAIN.to_string())
         .status(status_code)
         .body(body)?)
 }
@@ -67,6 +67,7 @@ fn get_s3_object_error(
         match no_such_key_redirect_path {
             Some(redirect_path) => Ok(hyper::Response::builder()
                 .status(StatusCode::FOUND)
+                .header("Content-Type", mime::TEXT_PLAIN.to_string())
                 .header("Location", redirect_path)
                 .body(full("Found"))?),
             None => easy_response(StatusCode::NOT_FOUND),
