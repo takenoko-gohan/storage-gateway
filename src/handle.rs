@@ -4,10 +4,11 @@ use bytes::Bytes;
 use config::{Config, Environment};
 use http_body_util::combinators::BoxBody;
 use hyper::body::Incoming;
-use hyper::{HeaderMap, Request, Response, StatusCode};
+use hyper::{HeaderMap, Request, StatusCode};
 use std::net::Ipv4Addr;
 use std::str::FromStr;
 
+type Response = hyper::Response<BoxBody<Bytes, hyper::Error>>;
 type Error = Box<dyn std::error::Error + Send + Sync>;
 
 pub struct Handler {
@@ -49,10 +50,14 @@ impl Handler {
         Ok(host.to_string())
     }
 
-    pub async fn handling(
-        self,
-        req: Request<Incoming>,
-    ) -> Result<Response<BoxBody<Bytes, hyper::Error>>, Error> {
+    fn get_object_key(&self, path: &str) -> Option<String> {
+        match path {
+            "/" => self.config.default_root_object.clone(),
+            _ => Some(path.trim_matches('/').to_string()),
+        }
+    }
+
+    pub async fn handling(self, req: Request<Incoming>) -> Result<Response, Error> {
         let host = match self.get_host(req.headers()) {
             Ok(host) => host,
             Err(e) => {
@@ -63,28 +68,27 @@ impl Handler {
         let path = req.uri().path();
 
         match Ipv4Addr::from_str(&host) {
-            Ok(_) => match path {
-                "/health" => response::easy_response(StatusCode::OK),
-                _ => response::easy_response(StatusCode::NOT_FOUND),
-            },
-            Err(_) => {
-                let key = match self.get_object_key(path) {
-                    Some(key) => key,
-                    None => {
-                        tracing::warn!("Missing object key");
-                        return response::easy_response(StatusCode::NOT_FOUND);
-                    }
-                };
-                tracing::info!("bucket: {}, key: {}", host, key);
-                response::s3_object_response(self.s3_client, &host, &key).await
-            }
+            Ok(_) => self.handle_self(path),
+            Err(_) => self.handle_s3(&host, path).await,
         }
     }
 
-    fn get_object_key(&self, path: &str) -> Option<String> {
+    fn handle_self(&self, path: &str) -> Result<Response, Error> {
         match path {
-            "/" => self.config.default_root_object.clone(),
-            _ => Some(path.trim_matches('/').to_string()),
+            "/health" => response::easy_response(StatusCode::OK),
+            _ => response::easy_response(StatusCode::NOT_FOUND),
         }
+    }
+
+    async fn handle_s3(self, host: &str, path: &str) -> Result<Response, Error> {
+        let key = match self.get_object_key(path) {
+            Some(key) => key,
+            None => {
+                tracing::warn!("Missing object key");
+                return response::easy_response(StatusCode::NOT_FOUND);
+            }
+        };
+        tracing::info!("bucket: {}, key: {}", host, key);
+        response::s3_object_response(self.s3_client, host, &key).await
     }
 }
