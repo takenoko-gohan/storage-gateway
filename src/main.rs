@@ -35,7 +35,10 @@ async fn main() -> Result<(), Error> {
             if let Err(e) = http1::Builder::new()
                 .serve_connection(
                     io,
-                    service_fn(move |req| handle::handler(req, s3_client.clone())),
+                    service_fn(move |req| {
+                        let handler = handle::Handler::new(s3_client.clone());
+                        handler.handling(req)
+                    }),
                 )
                 .await
             {
