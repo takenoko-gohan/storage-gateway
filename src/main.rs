@@ -14,8 +14,10 @@ use hyper::{HeaderMap, Request, Response, StatusCode};
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
 
+type Error = Box<dyn std::error::Error + Send + Sync>;
+
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn main() -> Result<(), Error> {
     tracing_subscriber::fmt().init();
 
     let s3_config = if std::env::var("ENV").unwrap_or("hoge".to_string()) == "local" {
@@ -43,7 +45,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 .serve_connection(io, service_fn(move |req| handler(req, s3_client.clone())))
                 .await
             {
-                tracing::warn!("Failed to serve connection: {:?}", e);
+                tracing::error!("Failed to serve connection: {:?}", e);
             }
         });
     }
@@ -52,7 +54,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 async fn handler(
     req: Request<Incoming>,
     s3_client: Client,
-) -> Result<Response<BoxBody<Bytes, hyper::Error>>, hyper::Error> {
+) -> Result<Response<BoxBody<Bytes, hyper::Error>>, Error> {
     let host = match get_host(req.headers()) {
         Ok(host) => host,
         Err(e) => {
@@ -60,8 +62,7 @@ async fn handler(
             return Ok(Response::builder()
                 .header("Content-Type", "text/plain")
                 .status(StatusCode::BAD_REQUEST)
-                .body(full(StatusCode::BAD_REQUEST.to_string()))
-                .unwrap());
+                .body(full(StatusCode::BAD_REQUEST.to_string()))?);
         }
     };
     let key = req.uri().path().to_string();
@@ -82,19 +83,26 @@ async fn handler(
                 Ok(Response::builder()
                     .header("Content-Type", "text/plain")
                     .status(StatusCode::NOT_FOUND)
-                    .body(full(StatusCode::NOT_FOUND.to_string()))
-                    .unwrap())
+                    .body(full(StatusCode::NOT_FOUND.to_string()))?)
             } else {
                 Ok(Response::builder()
                     .header("Content-Type", "text/plain")
                     .status(StatusCode::INTERNAL_SERVER_ERROR)
-                    .body(full(StatusCode::INTERNAL_SERVER_ERROR.to_string()))
-                    .unwrap())
+                    .body(full(StatusCode::INTERNAL_SERVER_ERROR.to_string()))?)
             };
         }
     };
 
-    let b = s3_obj.body.collect().await.unwrap().into_bytes();
+    let b = match s3_obj.body.collect().await {
+        Ok(b) => b.into_bytes(),
+        Err(e) => {
+            tracing::error!("Failed to collect body: {:?}", e);
+            return Ok(Response::builder()
+                .header("Content-Type", "text/plain")
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(full(StatusCode::INTERNAL_SERVER_ERROR.to_string()))?);
+        }
+    };
 
     let res = Response::builder().status(StatusCode::OK);
     let res = match key.split('.').last() {
@@ -113,7 +121,7 @@ async fn handler(
         Some("json") => res.header("Content-Type", "application/json"),
         _ => res.header("Content-Type", "text/plain"),
     };
-    let res = res.body(full(b)).unwrap();
+    let res = res.body(full(b))?;
 
     Ok(res)
 }
@@ -124,7 +132,7 @@ fn full<T: Into<Bytes>>(chunk: T) -> BoxBody<Bytes, hyper::Error> {
         .boxed()
 }
 
-fn get_host(headers: &HeaderMap) -> Result<String, Box<dyn std::error::Error>> {
+fn get_host(headers: &HeaderMap) -> Result<String, Error> {
     let host = headers
         .get("host")
         .ok_or("Host header not found")?
