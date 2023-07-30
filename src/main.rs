@@ -1,8 +1,12 @@
 mod io;
 
 use crate::io::TokioIo;
+#[cfg(not(feature = "test"))]
+use aws_sdk_s3::config;
+#[cfg(feature = "test")]
 use aws_sdk_s3::config::Credentials;
-use aws_sdk_s3::{config, Client, Config};
+use aws_sdk_s3::{Client, Config};
+#[cfg(feature = "test")]
 use aws_types::region::Region;
 use bytes::Bytes;
 use http_body_util::combinators::BoxBody;
@@ -20,17 +24,7 @@ type Error = Box<dyn std::error::Error + Send + Sync>;
 async fn main() -> Result<(), Error> {
     tracing_subscriber::fmt().init();
 
-    let s3_config = if std::env::var("ENV").unwrap_or("hoge".to_string()) == "local" {
-        tracing::info!("local mode");
-        let cred = Credentials::new("dummy", "dummy", None, None, "dummy");
-        Config::builder()
-            .credentials_provider(cred)
-            .region(Region::new("us-east-1"))
-            .endpoint_url("http://127.0.0.1:4566")
-            .build()
-    } else {
-        config::Builder::from(&aws_config::load_from_env().await).build()
-    };
+    let s3_config = create_aws_config().await;
     let s3_client = Client::from_conf(s3_config);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 80));
@@ -49,6 +43,25 @@ async fn main() -> Result<(), Error> {
             }
         });
     }
+}
+
+#[cfg(feature = "test")]
+async fn create_aws_config() -> Config {
+    tracing::info!("AWS config test mode");
+    const REGION: &str = "us-east-1";
+    const ENDPOINT: &str = "http://127.0.0.1:4566";
+
+    let cred = Credentials::new("dummy", "dummy", None, None, "dummy");
+    Config::builder()
+        .credentials_provider(cred)
+        .region(Region::new(REGION))
+        .endpoint_url(ENDPOINT)
+        .build()
+}
+
+#[cfg(not(feature = "test"))]
+async fn create_aws_config() -> Config {
+    config::Builder::from(&aws_config::load_from_env().await).build()
 }
 
 async fn handler(

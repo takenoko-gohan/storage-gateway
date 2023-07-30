@@ -16,3 +16,6 @@ pin-project-lite = "0.2.10"
 tokio = { version = "1.29.1", features = ["full"] }
 tracing = "0.1.37"
 tracing-subscriber = "0.3.17"
+
+[features]
+test = []
