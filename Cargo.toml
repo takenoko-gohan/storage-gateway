@@ -13,6 +13,8 @@ bytes = "1.4.0"
 config = { version = "0.13.3", default-features = false }
 http-body-util = "0.1.0-rc.3"
 hyper = { version = "1.0.0-rc.4", features = ["full"] }
+mime = "0.3.17"
+mime_guess = "2.0.4"
 pin-project-lite = "0.2.10"
 serde = { version = "1.0.177", features = ["derive"] }
 tokio = { version = "1.29.1", features = ["full"] }
