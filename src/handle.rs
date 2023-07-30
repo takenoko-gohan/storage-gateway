@@ -19,6 +19,7 @@ pub struct Handler {
 #[derive(serde::Deserialize)]
 struct AppConfig {
     default_root_object: Option<String>,
+    default_subdir_object: Option<String>,
 }
 
 impl Handler {
@@ -51,10 +52,26 @@ impl Handler {
     }
 
     fn get_object_key(&self, path: &str) -> Option<String> {
-        match path {
-            "/" => self.config.default_root_object.clone(),
-            _ => Some(path.trim_matches('/').to_string()),
+        if path == "/" || path.is_empty() {
+            return self.config.default_root_object.clone();
         }
+
+        let delimiter = match path.ends_with('/') {
+            true => "",
+            false => "/",
+        };
+        let key = if path.ends_with('/') || !path.contains('.') {
+            self.config.default_subdir_object.as_ref().map_or_else(
+                || path[1..].to_string(),
+                |default_subdir_object| {
+                    format!("{}{}{}", &path[1..], delimiter, default_subdir_object)
+                },
+            )
+        } else {
+            path[1..].to_string()
+        };
+
+        Some(key)
     }
 
     pub async fn handling(self, req: Request<Incoming>) -> Result<Response, Error> {
