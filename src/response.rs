@@ -33,13 +33,20 @@ pub async fn s3_object_response(
     s3_client: Client,
     bucket: &str,
     key: &str,
+    no_such_key_redirect_path: Option<String>,
 ) -> Result<Response<BoxBody<Bytes, hyper::Error>>, Error> {
     let s3_obj = match s3_client.get_object().bucket(bucket).key(key).send().await {
         Ok(obj) => obj,
         Err(e) => {
             tracing::error!("Failed to get object: {:?}", e);
             return if e.into_service_error().is_no_such_key() {
-                easy_response(StatusCode::NOT_FOUND)
+                match no_such_key_redirect_path {
+                    Some(redirect_path) => Ok(Response::builder()
+                        .status(StatusCode::FOUND)
+                        .header("Location", redirect_path)
+                        .body(full("Found"))?),
+                    None => easy_response(StatusCode::NOT_FOUND),
+                }
             } else {
                 easy_response(StatusCode::INTERNAL_SERVER_ERROR)
             };

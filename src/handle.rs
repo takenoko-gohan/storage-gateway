@@ -20,6 +20,7 @@ pub struct Handler {
 struct AppConfig {
     default_root_object: Option<String>,
     default_subdir_object: Option<String>,
+    no_such_key_redirect_path: Option<String>,
 }
 
 impl Handler {
@@ -106,6 +107,12 @@ impl Handler {
             }
         };
         tracing::info!("bucket: {}, key: {}", host, key);
-        response::s3_object_response(self.s3_client, host, &key).await
+        response::s3_object_response(
+            self.s3_client,
+            host,
+            &key,
+            self.config.no_such_key_redirect_path,
+        )
+        .await
     }
 }
