@@ -23,3 +23,11 @@ run_task = { name = [
 run_task = { name = [
     "localstack-teardown",
 ], fork = true }
+
+[tasks.unit-tests]
+command = "cargo"
+args = ["test", "--", "--test-threads=1"]
+
+[tasks.llvm-cov-open]
+command = "cargo"
+args = ["llvm-cov", "--open", "test", "--", "--test-threads=1"]
