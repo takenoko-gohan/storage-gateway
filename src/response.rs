@@ -76,3 +76,21 @@ fn get_s3_object_error(
         easy_response(StatusCode::INTERNAL_SERVER_ERROR)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use hyper::StatusCode;
+    use pretty_assertions::assert_eq;
+    use test_case::test_case;
+
+    #[test_case(StatusCode::OK)]
+    #[test_case(StatusCode::BAD_REQUEST)]
+    #[test_case(StatusCode::NOT_FOUND)]
+    #[test_case(StatusCode::INTERNAL_SERVER_ERROR)]
+    #[tokio::test]
+    async fn test_easy_response(status_code: StatusCode) {
+        let res = super::easy_response(status_code);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap().status(), status_code);
+    }
+}

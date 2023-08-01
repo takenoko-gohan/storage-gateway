@@ -66,3 +66,31 @@ async fn create_aws_config() -> Config {
 async fn create_aws_config() -> Config {
     config::Builder::from(&aws_config::load_from_env().await).build()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use aws_credential_types::cache::ProvideCachedCredentials;
+    use aws_sdk_s3::config::Credentials;
+    use aws_types::region::Region;
+    use pretty_assertions::assert_eq;
+
+    #[tokio::test]
+    async fn test_create_aws_config() {
+        std::env::set_var("AWS_ACCESS_KEY_ID", "dummy");
+        std::env::set_var("AWS_SECRET_ACCESS_KEY", "dummy");
+        std::env::set_var("AWS_DEFAULT_REGION", "us-east-1");
+
+        let cred = Credentials::new("dummy", "dummy", None, None, "dummy");
+        let config = create_aws_config().await;
+        let config_cred = config
+            .credentials_cache()
+            .provide_cached_credentials()
+            .await
+            .unwrap();
+
+        assert_eq!(config.region().unwrap(), &Region::new("us-east-1"));
+        assert_eq!(config_cred.access_key_id(), cred.access_key_id());
+        assert_eq!(config_cred.secret_access_key(), cred.secret_access_key());
+    }
+}

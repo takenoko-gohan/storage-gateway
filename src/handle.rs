@@ -116,3 +116,79 @@ impl Handler {
         .await
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use hyper::header::{HeaderMap, HeaderValue};
+    use pretty_assertions::assert_eq;
+    use test_case::test_case;
+
+    #[test_case("example.com", "example.com" ; "get_host() test 1")]
+    #[test_case("example.com:8080", "example.com" ; "get_host() test 2")]
+    #[tokio::test]
+    async fn test_get_host(host: &'static str, expected: &str) {
+        let mut headers = HeaderMap::new();
+        headers.insert("host", HeaderValue::from_static(host));
+
+        let config = aws_sdk_s3::config::Builder::from(&aws_config::load_from_env().await).build();
+        let client = Client::from_conf(config);
+        let handler = Handler::new(client);
+
+        assert_eq!(handler.get_host(&headers).unwrap(), expected);
+    }
+
+    #[test_case("/", None, None, None ; "get_object_key() test 1")]
+    #[test_case("/", Some("index.html"), None, Some("index.html") ; "get_object_key() test 2")]
+    #[test_case("/", None, Some("index.html"), None; "get_object_key() test 3")]
+    #[test_case("/dir", None, None, Some("dir") ; "get_object_key() test 4")]
+    #[test_case("/dir", Some("index.html"), None, Some("dir") ; "get_object_key() test 5")]
+    #[test_case("/dir", None, Some("index.html"), Some("dir/index.html") ; "get_object_key() test 6")]
+    #[tokio::test]
+    async fn test_get_object_key(
+        path: &'static str,
+        default_root_object: Option<&str>,
+        default_subdir_object: Option<&str>,
+        expected: Option<&str>,
+    ) {
+        match default_root_object {
+            Some(default_root_object) => {
+                std::env::set_var("S3_GATEWAY_DEFAULT_ROOT_OBJECT", default_root_object)
+            }
+            None => {
+                std::env::remove_var("S3_GATEWAY_DEFAULT_ROOT_OBJECT");
+            }
+        }
+        match default_subdir_object {
+            Some(default_subdir_object) => {
+                std::env::set_var("S3_GATEWAY_DEFAULT_SUBDIR_OBJECT", default_subdir_object)
+            }
+            None => {
+                std::env::remove_var("S3_GATEWAY_DEFAULT_SUBDIR_OBJECT");
+            }
+        }
+
+        let config = aws_sdk_s3::config::Builder::from(&aws_config::load_from_env().await).build();
+        let client = Client::from_conf(config);
+        let handler = Handler::new(client);
+
+        assert_eq!(
+            handler.get_object_key(path),
+            expected.map(|s| s.to_string())
+        );
+    }
+
+    #[test_case("/health", StatusCode::OK ; "handle_self() test 1")]
+    #[test_case("/foo", StatusCode::NOT_FOUND ; "handle_self() test 2")]
+    #[tokio::test]
+    async fn test_handle_self(path: &'static str, expected: StatusCode) {
+        let config = aws_sdk_s3::config::Builder::from(&aws_config::load_from_env().await).build();
+        let client = Client::from_conf(config);
+        let handler = Handler::new(client);
+
+        let res = handler.handle_self(path);
+        assert!(res.is_ok());
+
+        assert_eq!(res.unwrap().status(), expected);
+    }
+}
