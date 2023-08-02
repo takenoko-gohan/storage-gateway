@@ -45,3 +45,15 @@ run_task = { name = [
     "aarch64-build",
     "x86_64-build",
 ], fork = true }
+
+[tasks.buildx-build]
+script = [
+    "docker buildx create --use --name mybuilder",
+    "docker buildx build --progress plain --platform linux/arm64,linux/amd64 -t s3-gateway .",
+]
+
+[tasks.container-build]
+run_task = { name = [
+    "all-build",
+    "buildx-build",
+], fork = true }
