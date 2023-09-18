@@ -30,14 +30,17 @@ args = ["test", "--", "--test-threads=1"]
 
 [tasks.llvm-cov-open]
 command = "cargo"
+install_crate = "cargo-llvm-cov"
 args = ["llvm-cov", "--open", "test", "--", "--test-threads=1"]
 
 [tasks.aarch64-build]
 command = "cargo"
+install_crate = "cargo-zigbuild"
 args = ["zigbuild", "--target", "aarch64-unknown-linux-gnu", "--release"]
 
 [tasks.x86_64-build]
 command = "cargo"
+install_crate = "cargo-zigbuild"
 args = ["zigbuild", "--target", "x86_64-unknown-linux-gnu", "--release"]
 
 [tasks.all-build]
