@@ -4,7 +4,7 @@ use bytes::Bytes;
 use config::{Config, Environment};
 use http_body_util::combinators::BoxBody;
 use hyper::body::Incoming;
-use hyper::{HeaderMap, Request, StatusCode};
+use hyper::{HeaderMap, Method, Request, StatusCode};
 use std::net::Ipv4Addr;
 use std::str::FromStr;
 
@@ -76,6 +76,11 @@ impl Handler {
     }
 
     pub async fn handling(self, req: Request<Incoming>) -> Result<Response, Error> {
+        match req.method() {
+            &Method::GET => {}
+            _ => return response::easy_response(StatusCode::METHOD_NOT_ALLOWED),
+        }
+
         let host = match self.get_host(req.headers()) {
             Ok(host) => host,
             Err(e) => {

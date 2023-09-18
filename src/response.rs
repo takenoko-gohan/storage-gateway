@@ -20,6 +20,7 @@ pub fn easy_response(status_code: StatusCode) -> Result<Response, Error> {
         StatusCode::OK => full("OK"),
         StatusCode::BAD_REQUEST => full("Bad Request"),
         StatusCode::NOT_FOUND => full("Not Found"),
+        StatusCode::METHOD_NOT_ALLOWED => full("Method Not Allowed"),
         StatusCode::INTERNAL_SERVER_ERROR => full("Internal Server Error"),
         _ => full("Unknown"),
     };
