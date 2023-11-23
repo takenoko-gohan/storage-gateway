@@ -1,6 +1,7 @@
 mod handle;
 mod io;
 mod response;
+mod server;
 
 use crate::io::TokioIo;
 #[cfg(not(feature = "test"))]
@@ -14,6 +15,7 @@ use hyper::server::conn::http1;
 use hyper::service::service_fn;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
+use futures_util::future::join;
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 
@@ -21,31 +23,65 @@ type Error = Box<dyn std::error::Error + Send + Sync>;
 async fn main() -> Result<(), Error> {
     tracing_subscriber::fmt().init();
 
-    let s3_config = create_aws_config().await;
-    let s3_client = Client::from_conf(s3_config);
+    let storage_addr = SocketAddr::from(([0, 0, 0, 0], 80));
+    let management_addr = SocketAddr::from(([0, 0, 0, 0], 8080));
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 80));
-    let listener = TcpListener::bind(&addr).await?;
+    let storage_server = async move {
+        let listener = TcpListener::bind(storage_addr).await.unwrap();
 
-    loop {
-        let (stream, _) = listener.accept().await?;
-        let io = TokioIo::new(stream);
-        let s3_client = s3_client.clone();
-        tokio::spawn(async move {
-            if let Err(e) = http1::Builder::new()
-                .serve_connection(
-                    io,
-                    service_fn(move |req| {
-                        let handler = handle::Handler::new(s3_client.clone());
-                        handler.handling(req)
-                    }),
-                )
-                .await
-            {
-                tracing::error!("Failed to serve connection: {:?}", e);
-            }
-        });
-    }
+        let s3_config = create_aws_config().await;
+        let s3_client = Client::from_conf(s3_config);
+
+        loop {
+            let (stream, _) = listener.accept().await.unwrap();
+            let io = TokioIo::new(stream);
+            let s3_client = s3_client.clone();
+
+            tokio::spawn(async move {
+                if let Err(e) = http1::Builder::new()
+                    .serve_connection(
+                        io,
+                        service_fn(move |req| {
+                            let handler = handle::Handler::new(s3_client.clone());
+                            handler.handling(req)
+                        }),
+                    )
+                    .await
+                {
+                    tracing::error!("Failed to serve connection: {:?}", e);
+                }
+            });
+        }
+    };
+
+    let management_server = async move {
+        let listener = TcpListener::bind(management_addr).await.unwrap();
+
+        loop {
+            let (stream, _) = listener.accept().await.unwrap();
+            let io = TokioIo::new(stream);
+
+            tokio::spawn(async move {
+                if let Err(e) = http1::Builder::new()
+                    .serve_connection(
+                        io,
+                        service_fn(move |req| {
+                            let handler = server::management::ManagementServer::new();
+                            handler.handle(req)
+                            //server::management::handle(req)
+                        }),
+                    )
+                    .await
+                {
+                    tracing::error!("Failed to serve connection: {:?}", e);
+                }
+            });
+        }
+    };
+
+    let _ret = join(storage_server, management_server).await;
+
+    Ok(())
 }
 
 #[cfg(feature = "test")]
