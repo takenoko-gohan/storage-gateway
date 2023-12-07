@@ -68,7 +68,6 @@ async fn main() -> Result<(), Error> {
                         service_fn(move |req| {
                             let handler = server::management::ManagementServer::new();
                             handler.handle(req)
-                            //server::management::handle(req)
                         }),
                     )
                     .await
