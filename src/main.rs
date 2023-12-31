@@ -16,7 +16,10 @@ async fn main() -> Result<(), Error> {
         .addr(SocketAddr::from(([0, 0, 0, 0], 8080)))
         .build();
 
-    let _ret = join(gateway, management).await;
+    let (gateway_result, management_result) = join(gateway, management).await;
+
+    gateway_result.unwrap_or_else(|e| tracing::error!("Gateway server failed: {}", e));
+    management_result.unwrap_or_else(|e| tracing::error!("Management server failed: {}", e));
 
     Ok(())
 }
