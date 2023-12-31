@@ -20,12 +20,16 @@ pub struct Server {
 
 impl ServerBuilder<((SocketAddr,),)> {
     pub async fn build(self) -> Box<dyn Future<Output = ()>> {
-        let builder = self.__build();
+        let input = self.__build();
 
-        let listener = TcpListener::bind(builder.addr).await.unwrap();
+        let listener = TcpListener::bind(input.addr).await.unwrap_or_else(|e| {
+            panic!("Failed to bind to {}: {}", input.addr, e);
+        });
 
         loop {
-            let (stream, _) = listener.accept().await.unwrap();
+            let (stream, _) = listener.accept().await.unwrap_or_else(|e| {
+                panic!("Failed to accept connection: {}", e);
+            });
             let io = TokioIo::new(stream);
 
             tokio::spawn(async move {
@@ -33,7 +37,7 @@ impl ServerBuilder<((SocketAddr,),)> {
                     .serve_connection(io, service_fn(hello))
                     .await
                 {
-                    tracing::error!("Failed to serve connection: {:?}", e);
+                    tracing::warn!("Failed to serve connection: {:?}", e);
                 }
             });
         }
