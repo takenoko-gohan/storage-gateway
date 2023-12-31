@@ -52,7 +52,7 @@ run_task = { name = [
 [tasks.buildx-build]
 script = [
     "docker buildx create --use --name mybuilder",
-    "docker buildx build --progress plain --platform linux/arm64,linux/amd64 -t s3-gateway .",
+    "docker buildx build --progress plain --platform linux/arm64,linux/amd64 -t storage-gateway .",
 ]
 
 [tasks.container-build]
