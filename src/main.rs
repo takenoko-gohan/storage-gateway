@@ -3,6 +3,7 @@ use std::net::SocketAddr;
 
 mod server;
 mod service;
+mod router;
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 

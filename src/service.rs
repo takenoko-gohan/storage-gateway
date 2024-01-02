@@ -1,3 +1,4 @@
+use crate::router;
 use bytes::Bytes;
 use http_body_util::Full;
 use hyper::body::Incoming;
@@ -11,11 +12,11 @@ pub struct GatewayService;
 
 impl Service<Request<Incoming>> for GatewayService {
     type Response = Response<Full<Bytes>>;
-    type Error = hyper::Error;
+    type Error = Box<dyn std::error::Error + Send + Sync>;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
 
-    fn call(&self, _req: Request<Incoming>) -> Self::Future {
-        Box::pin(async move { Ok(Response::new(Full::new(Bytes::from("This is Gateway")))) })
+    fn call(&self, req: Request<Incoming>) -> Self::Future {
+        Box::pin(async move { router::gateway_route(req).await })
     }
 }
 
@@ -24,10 +25,10 @@ pub struct ManagementService;
 
 impl Service<Request<Incoming>> for ManagementService {
     type Response = Response<Full<Bytes>>;
-    type Error = hyper::Error;
+    type Error = Box<dyn std::error::Error + Send + Sync>;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
 
-    fn call(&self, _req: Request<Incoming>) -> Self::Future {
-        Box::pin(async move { Ok(Response::new(Full::new(Bytes::from("This is Management")))) })
+    fn call(&self, req: Request<Incoming>) -> Self::Future {
+        Box::pin(async move { router::management_route(req).await })
     }
 }
