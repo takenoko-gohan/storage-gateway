@@ -2,6 +2,7 @@ use futures_util::future::join;
 use std::net::SocketAddr;
 
 mod server;
+mod service;
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 
@@ -11,9 +12,11 @@ async fn main() -> Result<(), Error> {
 
     let gateway = server::Server::builder()
         .addr(SocketAddr::from(([0, 0, 0, 0], 80)))
+        .server_type(server::ServerType::Gateway)
         .build();
     let management = server::Server::builder()
         .addr(SocketAddr::from(([0, 0, 0, 0], 8080)))
+        .server_type(server::ServerType::Management)
         .build();
 
     let (gateway_result, management_result) = join(gateway, management).await;
