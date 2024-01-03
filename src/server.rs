@@ -1,4 +1,12 @@
 use crate::service;
+#[cfg(not(feature = "__tests"))]
+use aws_config::BehaviorVersion;
+#[cfg(feature = "__tests")]
+use aws_config::Region;
+#[cfg(feature = "__tests")]
+use aws_sdk_s3::config::Credentials;
+#[cfg(feature = "__tests")]
+use aws_sdk_s3::Config;
 use bytes::Bytes;
 use http_body_util::Full;
 use hyper::body::Incoming;
@@ -34,9 +42,18 @@ pub enum ServerType {
 pub struct Server {
     addr: SocketAddr,
     server_type: ServerType,
+    #[builder(default)]
+    root_object: Option<String>,
+    #[builder(default)]
+    subdir_root_object: Option<String>,
+    #[builder(default)]
+    no_such_key_redirect_path: Option<String>,
 }
 
-impl ServerBuilder<((SocketAddr,), (ServerType,))> {
+impl<T> ServerBuilder<((SocketAddr,), (ServerType,), T, T, T)>
+where
+    T: typed_builder::Optional<Option<String>>,
+{
     pub async fn build(self) -> Result<(), Error> {
         let input = self.__build();
 
@@ -46,7 +63,26 @@ impl ServerBuilder<((SocketAddr,), (ServerType,))> {
 
         match input.server_type {
             ServerType::Gateway => {
-                let svc = service::GatewayService;
+                #[cfg(not(feature = "__tests"))]
+                let aws_config = aws_sdk_s3::config::Builder::from(
+                    &aws_config::load_defaults(BehaviorVersion::latest()).await,
+                )
+                .build();
+                #[cfg(feature = "__tests")]
+                let aws_config = Config::builder()
+                    .credentials_provider(Credentials::new("dummy", "dummy", None, None, "dummy"))
+                    .region(Region::new("us-east-1"))
+                    .endpoint_url("http://127.0.0.1:4566")
+                    .behavior_version_latest()
+                    .build();
+
+                let s3_client = aws_sdk_s3::Client::from_conf(aws_config);
+                let svc = service::GatewayService::builder()
+                    .s3_client(s3_client)
+                    .root_object(input.root_object)
+                    .subdir_root_object(input.subdir_root_object)
+                    .no_such_key_redirect_path(input.no_such_key_redirect_path)
+                    .build();
                 serve(listener, svc).await
             }
             ServerType::Management => {
@@ -70,7 +106,7 @@ where
 
         tokio::spawn(async move {
             if let Err(e) = http1::Builder::new().serve_connection(io, svc).await {
-                tracing::warn!("Failed to serve connection: {:?}", e);
+                tracing::warn!("failed to serve connection: {:?}", e);
             }
         });
     }

@@ -3,9 +3,9 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub struct AppConfig {
-    default_root: Option<String>,
-    default_subdir_root: Option<String>,
-    no_such_key_redirect: Option<String>,
+    root_object: Option<String>,
+    subdir_root_object: Option<String>,
+    no_such_key_redirect_path: Option<String>,
 }
 
 impl AppConfig {
@@ -22,15 +22,15 @@ impl AppConfig {
             .expect("Failed to deserialize config")
     }
 
-    pub fn default_root(&self) -> Option<&str> {
-        self.default_root.as_deref()
+    pub fn root_object(&self) -> &Option<String> {
+        &self.root_object
     }
 
-    pub fn default_subdir_root(&self) -> Option<&str> {
-        self.default_subdir_root.as_deref()
+    pub fn subdir_root_object(&self) -> &Option<String> {
+        &self.subdir_root_object
     }
 
-    pub fn no_such_key_redirect(&self) -> Option<&str> {
-        self.no_such_key_redirect.as_deref()
+    pub fn no_such_key_redirect_path(&self) -> &Option<String> {
+        &self.no_such_key_redirect_path
     }
 }
