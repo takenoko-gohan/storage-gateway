@@ -31,8 +31,9 @@ async fn main() -> Result<(), Error> {
 
     let (gateway_result, management_result) = join(gateway, management).await;
 
-    gateway_result.unwrap_or_else(|e| tracing::error!("gateway server failed: {}", e));
-    management_result.unwrap_or_else(|e| tracing::error!("management server failed: {}", e));
+    gateway_result.unwrap_or_else(|e| tracing::error!("failed to start gateway server: {}", e));
+    management_result
+        .unwrap_or_else(|e| tracing::error!("failed to start management server: {}", e));
 
     Ok(())
 }
