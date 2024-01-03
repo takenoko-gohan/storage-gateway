@@ -1,15 +1,19 @@
 use futures_util::future::join;
 use std::net::SocketAddr;
 
+mod config;
+mod router;
 mod server;
 mod service;
-mod router;
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     tracing_subscriber::fmt().init();
+
+    let config = config::AppConfig::new();
+    tracing::info!("Config: {:?}", config);
 
     let gateway = server::Server::builder()
         .addr(SocketAddr::from(([0, 0, 0, 0], 80)))
