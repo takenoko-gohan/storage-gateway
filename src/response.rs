@@ -2,9 +2,13 @@ use bytes::Bytes;
 use http_body_util::Full;
 use hyper::{Response, StatusCode};
 
-type Error = Box<dyn std::error::Error + Send + Sync>;
+#[derive(Debug, thiserror::Error)]
+pub enum ResponseError {
+    #[error("failed to build response: {0}")]
+    ResponseBuild(#[from] hyper::http::Error),
+}
 
-pub fn easy_response(status_code: StatusCode) -> Result<Response<Full<Bytes>>, Error> {
+pub fn easy_response(status_code: StatusCode) -> Result<Response<Full<Bytes>>, ResponseError> {
     let body = Full::new(Bytes::from(
         status_code.canonical_reason().unwrap_or_default(),
     ));
@@ -15,11 +19,21 @@ pub fn easy_response(status_code: StatusCode) -> Result<Response<Full<Bytes>>, E
         .body(body)?)
 }
 
+pub fn s3_ok_response(
+    content_type: String,
+    body: Bytes,
+) -> Result<Response<Full<Bytes>>, ResponseError> {
+    Ok(Response::builder()
+        .status(StatusCode::OK)
+        .header("Content-Type", content_type)
+        .body(Full::new(body))?)
+}
+
 pub fn s3_error_response(
     is_no_such_key: bool,
     key: &str,
     no_such_key_redirect_path: Option<String>,
-) -> Result<Response<Full<Bytes>>, Error> {
+) -> Result<Response<Full<Bytes>>, ResponseError> {
     if is_no_such_key {
         match no_such_key_redirect_path {
             Some(redirect_path) => {

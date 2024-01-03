@@ -8,6 +8,12 @@ use std::future::Future;
 use std::pin::Pin;
 use typed_builder::TypedBuilder;
 
+#[derive(Debug, thiserror::Error)]
+pub enum ServiceError {
+    #[error("failed to route: {0}")]
+    Router(#[from] router::RouterError),
+}
+
 #[derive(Debug, Clone, TypedBuilder)]
 pub struct GatewayService {
     s3_client: aws_sdk_s3::Client,
@@ -18,7 +24,7 @@ pub struct GatewayService {
 
 impl Service<Request<Incoming>> for GatewayService {
     type Response = Response<Full<Bytes>>;
-    type Error = Box<dyn std::error::Error + Send + Sync>;
+    type Error = ServiceError;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
 
     fn call(&self, req: Request<Incoming>) -> Self::Future {
@@ -36,6 +42,7 @@ impl Service<Request<Incoming>> for GatewayService {
                 no_such_key_redirect,
             )
             .await
+            .map_err(ServiceError::Router)
         })
     }
 }
@@ -45,10 +52,14 @@ pub struct ManagementService;
 
 impl Service<Request<Incoming>> for ManagementService {
     type Response = Response<Full<Bytes>>;
-    type Error = Box<dyn std::error::Error + Send + Sync>;
+    type Error = ServiceError;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
 
     fn call(&self, req: Request<Incoming>) -> Self::Future {
-        Box::pin(async move { router::management_route(req).await })
+        Box::pin(async move {
+            router::management_route(req)
+                .await
+                .map_err(ServiceError::Router)
+        })
     }
 }

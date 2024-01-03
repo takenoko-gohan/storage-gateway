@@ -1,17 +1,22 @@
 use crate::response;
+use crate::response::ResponseError;
 use aws_sdk_s3::Client;
 use bytes::Bytes;
 use http_body_util::Full;
 use hyper::{Response, StatusCode};
 
-type Error = Box<dyn std::error::Error + Send + Sync>;
+#[derive(Debug, thiserror::Error)]
+pub enum HandlerError {
+    #[error("failed to respond: {0}")]
+    Response(#[from] ResponseError),
+}
 
 pub async fn s3_handle(
     s3_client: &Client,
     no_such_key_redirect_path: Option<String>,
     bucket: &str,
     key: &str,
-) -> Result<Response<Full<Bytes>>, Error> {
+) -> Result<Response<Full<Bytes>>, HandlerError> {
     tracing::info!("get object: s3://{}/{}", bucket, key);
 
     let resp = match s3_client.get_object().bucket(bucket).key(key).send().await {
@@ -23,11 +28,11 @@ pub async fn s3_handle(
                 key,
                 e
             );
-            return response::s3_error_response(
+            return Ok(response::s3_error_response(
                 e.into_service_error().is_no_such_key(),
                 key,
                 no_such_key_redirect_path,
-            );
+            )?);
         }
     };
 
@@ -35,7 +40,7 @@ pub async fn s3_handle(
         Ok(body) => body.into_bytes(),
         Err(e) => {
             tracing::error!("failed to collect body: {:?}", e);
-            return response::easy_response(StatusCode::INTERNAL_SERVER_ERROR);
+            return Ok(response::easy_response(StatusCode::INTERNAL_SERVER_ERROR)?);
         }
     };
 
@@ -43,8 +48,5 @@ pub async fn s3_handle(
         .first_or(mime::TEXT_PLAIN)
         .to_string();
 
-    Ok(Response::builder()
-        .status(StatusCode::OK)
-        .header("Content-Type", content_type)
-        .body(Full::new(body))?)
+    Ok(response::s3_ok_response(content_type, body)?)
 }

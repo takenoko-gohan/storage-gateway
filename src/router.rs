@@ -4,7 +4,13 @@ use http_body_util::Full;
 use hyper::body::Incoming;
 use hyper::{Method, Request, Response, StatusCode};
 
-type Error = Box<dyn std::error::Error + Send + Sync>;
+#[derive(Debug, thiserror::Error)]
+pub enum RouterError {
+    #[error("failed to respond: {0}")]
+    Response(#[from] response::ResponseError),
+    #[error("failed to handle: {0}")]
+    Handler(#[from] handler::HandlerError),
+}
 
 pub async fn gateway_route(
     req: Request<Incoming>,
@@ -12,11 +18,11 @@ pub async fn gateway_route(
     root_object: Option<String>,
     subdir_root_object: Option<String>,
     no_such_key_redirect_path: Option<String>,
-) -> Result<Response<Full<Bytes>>, Error> {
+) -> Result<Response<Full<Bytes>>, RouterError> {
     let bucket = if let Some(header) = req.headers().get("Host") {
         header.to_str().unwrap_or_default()
     } else {
-        return response::easy_response(StatusCode::BAD_REQUEST);
+        return Ok(response::easy_response(StatusCode::BAD_REQUEST)?);
     };
 
     let mut path = req.uri().path().to_string();
@@ -41,7 +47,9 @@ pub async fn gateway_route(
     }
 }
 
-pub async fn management_route(req: Request<Incoming>) -> Result<Response<Full<Bytes>>, Error> {
+pub async fn management_route(
+    req: Request<Incoming>,
+) -> Result<Response<Full<Bytes>>, RouterError> {
     match (req.method(), req.uri().path()) {
         (&Method::GET, "/health") => Ok(response::easy_response(StatusCode::OK)?),
         _ => Ok(response::easy_response(StatusCode::NOT_FOUND)?),

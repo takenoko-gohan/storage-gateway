@@ -18,8 +18,6 @@ use std::net::SocketAddr;
 use tokio::net::TcpListener;
 use typed_builder::TypedBuilder;
 
-type Error = Box<dyn std::error::Error + Send + Sync>;
-
 #[derive(Debug, thiserror::Error)]
 pub enum ServerError {
     #[error("Failed to bind to address: {0}")]
@@ -54,7 +52,7 @@ impl<T> ServerBuilder<((SocketAddr,), (ServerType,), T, T, T)>
 where
     T: typed_builder::Optional<Option<String>>,
 {
-    pub async fn build(self) -> Result<(), Error> {
+    pub async fn build(self) -> Result<(), ServerError> {
         let input = self.__build();
 
         let listener = TcpListener::bind(input.addr)
@@ -93,7 +91,7 @@ where
     }
 }
 
-async fn serve<S>(listener: TcpListener, svc: S) -> Result<(), Error>
+async fn serve<S>(listener: TcpListener, svc: S) -> Result<(), ServerError>
 where
     S: Service<Request<Incoming>, Response = Response<Full<Bytes>>> + Clone + Send + Sync + 'static,
     S::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
@@ -106,7 +104,20 @@ where
 
         tokio::spawn(async move {
             if let Err(e) = http1::Builder::new().serve_connection(io, svc).await {
-                tracing::warn!("failed to serve connection: {:?}", e);
+                if e.is_closed()
+                    || e.is_parse()
+                    || e.is_parse_too_large()
+                    || e.is_parse_status()
+                    || e.is_user()
+                    || e.is_canceled()
+                    || e.is_incomplete_message()
+                    || e.is_body_write_aborted()
+                    || e.is_timeout()
+                {
+                    tracing::error!("failed to serve connection: {:?}", e);
+                } else {
+                    tracing::warn!("failed to serve connection: {:?}", e);
+                }
             }
         });
     }
