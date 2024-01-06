@@ -20,6 +20,7 @@ pub struct GatewayService {
     root_object: Option<String>,
     subdir_root_object: Option<String>,
     no_such_key_redirect_path: Option<String>,
+    self_account_id: Option<String>,
 }
 
 impl Service<Request<Incoming>> for GatewayService {
@@ -32,6 +33,7 @@ impl Service<Request<Incoming>> for GatewayService {
         let default_root = self.root_object.clone();
         let default_subdir_root = self.subdir_root_object.clone();
         let no_such_key_redirect = self.no_such_key_redirect_path.clone();
+        let self_account_id = self.self_account_id.clone();
 
         Box::pin(async move {
             router::gateway_route(
@@ -40,6 +42,7 @@ impl Service<Request<Incoming>> for GatewayService {
                 default_root,
                 default_subdir_root,
                 no_such_key_redirect,
+                self_account_id,
             )
             .await
             .map_err(ServiceError::Router)

@@ -1,4 +1,4 @@
-use futures_util::future::join;
+use futures_util::future::try_join;
 use std::net::SocketAddr;
 
 mod config;
@@ -23,17 +23,14 @@ async fn main() -> Result<(), Error> {
         .root_object(config.root_object().clone())
         .subdir_root_object(config.subdir_root_object().clone())
         .no_such_key_redirect_path(config.no_such_key_redirect_path().clone())
+        .allow_cross_account(config.allow_cross_account())
         .build();
     let management = server::Server::builder()
         .addr(SocketAddr::from(([0, 0, 0, 0], 8080)))
         .server_type(server::ServerType::Management)
         .build();
 
-    let (gateway_result, management_result) = join(gateway, management).await;
-
-    gateway_result.unwrap_or_else(|e| tracing::error!("failed to start gateway server: {}", e));
-    management_result
-        .unwrap_or_else(|e| tracing::error!("failed to start management server: {}", e));
+    try_join(gateway, management).await?;
 
     Ok(())
 }

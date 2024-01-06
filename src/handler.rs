@@ -14,10 +14,24 @@ pub enum HandlerError {
 pub async fn s3_handle(
     s3_client: &Client,
     no_such_key_redirect_path: Option<String>,
+    self_account_id: Option<String>,
     bucket: &str,
     key: &str,
 ) -> Result<Response<Full<Bytes>>, HandlerError> {
     tracing::info!("get object: s3://{}/{}", bucket, key);
+
+    if let Some(id) = self_account_id {
+        if let Err(e) = s3_client
+            .head_bucket()
+            .bucket(bucket)
+            .expected_bucket_owner(id)
+            .send()
+            .await
+        {
+            tracing::warn!("failed to head bucket: bucket: {} e: {:?}", bucket, e);
+            return Ok(response::easy_response(StatusCode::FORBIDDEN)?);
+        }
+    }
 
     let resp = match s3_client.get_object().bucket(bucket).key(key).send().await {
         Ok(resp) => resp,

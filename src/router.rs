@@ -18,6 +18,7 @@ pub async fn gateway_route(
     root_object: Option<String>,
     subdir_root_object: Option<String>,
     no_such_key_redirect_path: Option<String>,
+    self_account_id: Option<String>,
 ) -> Result<Response<Full<Bytes>>, RouterError> {
     let bucket = if let Some(header) = req.headers().get("Host") {
         header
@@ -44,9 +45,14 @@ pub async fn gateway_route(
     let key = path.trim_start_matches('/');
 
     match req.method() {
-        &Method::GET => {
-            Ok(handler::s3_handle(&s3_client, no_such_key_redirect_path, bucket, key).await?)
-        }
+        &Method::GET => Ok(handler::s3_handle(
+            &s3_client,
+            no_such_key_redirect_path,
+            self_account_id,
+            bucket,
+            key,
+        )
+        .await?),
         _ => Ok(response::easy_response(StatusCode::METHOD_NOT_ALLOWED)?),
     }
 }

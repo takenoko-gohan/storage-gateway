@@ -6,6 +6,8 @@ pub struct AppConfig {
     root_object: Option<String>,
     subdir_root_object: Option<String>,
     no_such_key_redirect_path: Option<String>,
+    #[serde(default)]
+    allow_cross_account: bool,
 }
 
 impl AppConfig {
@@ -32,5 +34,9 @@ impl AppConfig {
 
     pub fn no_such_key_redirect_path(&self) -> &Option<String> {
         &self.no_such_key_redirect_path
+    }
+
+    pub fn allow_cross_account(&self) -> bool {
+        self.allow_cross_account
     }
 }
