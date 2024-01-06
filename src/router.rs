@@ -20,7 +20,11 @@ pub async fn gateway_route(
     no_such_key_redirect_path: Option<String>,
 ) -> Result<Response<Full<Bytes>>, RouterError> {
     let bucket = if let Some(header) = req.headers().get("Host") {
-        header.to_str().unwrap_or_default()
+        header
+            .to_str()
+            .unwrap_or_default()
+            .split(':')
+            .collect::<Vec<&str>>()[0]
     } else {
         return Ok(response::easy_response(StatusCode::BAD_REQUEST)?);
     };
