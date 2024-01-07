@@ -8,6 +8,18 @@ pub struct AppConfig {
     no_such_key_redirect_object: Option<String>,
     #[serde(default)]
     allow_cross_account: bool,
+    #[serde(default = "default_gateway_port")]
+    gateway_port: u16,
+    #[serde(default = "default_management_port")]
+    management_port: u16,
+}
+
+fn default_gateway_port() -> u16 {
+    80
+}
+
+fn default_management_port() -> u16 {
+    8080
 }
 
 impl AppConfig {
@@ -38,5 +50,13 @@ impl AppConfig {
 
     pub fn allow_cross_account(&self) -> bool {
         self.allow_cross_account
+    }
+
+    pub fn gateway_port(&self) -> u16 {
+        self.gateway_port
+    }
+
+    pub fn management_port(&self) -> u16 {
+        self.management_port
     }
 }

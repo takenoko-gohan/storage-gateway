@@ -18,7 +18,7 @@ async fn main() -> Result<(), Error> {
     tracing::info!("application config: {:?}", config);
 
     let gateway = server::Server::builder()
-        .addr(SocketAddr::from(([0, 0, 0, 0], 80)))
+        .addr(SocketAddr::from(([0, 0, 0, 0], config.gateway_port())))
         .server_type(server::ServerType::Gateway)
         .root_object(config.root_object().clone())
         .subdir_root_object(config.subdir_root_object().clone())
@@ -26,7 +26,7 @@ async fn main() -> Result<(), Error> {
         .allow_cross_account(config.allow_cross_account())
         .build();
     let management = server::Server::builder()
-        .addr(SocketAddr::from(([0, 0, 0, 0], 8080)))
+        .addr(SocketAddr::from(([0, 0, 0, 0], config.management_port())))
         .server_type(server::ServerType::Management)
         .build();
 
