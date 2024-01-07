@@ -28,7 +28,11 @@ pub async fn s3_handle(
             .send()
             .await
         {
-            tracing::warn!("failed to head bucket: bucket: {} e: {:?}", bucket, e);
+            tracing::warn!(
+                "failed to head bucket: bucket: {} e: {:?}",
+                bucket,
+                e.into_service_error()
+            );
             return Ok(response::easy_response(StatusCode::FORBIDDEN)?);
         }
     }
@@ -36,16 +40,17 @@ pub async fn s3_handle(
     let resp = match s3_client.get_object().bucket(bucket).key(key).send().await {
         Ok(resp) => resp,
         Err(e) => {
+            let error = e.into_service_error();
             tracing::warn!(
                 "failed to get object: bucket: {} key: {} e: {:?}",
                 bucket,
                 key,
-                e
+                error,
             );
             return Ok(response::s3_error_response(
                 s3_client,
                 bucket,
-                e.into_service_error().is_no_such_key(),
+                error.is_no_such_key(),
                 no_such_key_redirect_object,
             )
             .await?);

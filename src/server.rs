@@ -20,11 +20,11 @@ use typed_builder::TypedBuilder;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ServerError {
-    #[error("Failed to bind to address: {0}")]
+    #[error("failed to bind to address: {0}")]
     Bind(std::io::Error),
-    #[error("Failed to accept connection: {0}")]
+    #[error("failed to accept connection: {0}")]
     Accept(std::io::Error),
-    #[error("Failed to get self account id: {0}")]
+    #[error("failed to get self account id: {0}")]
     GetSelfAccountId(#[from] aws_sdk_sts::error::SdkError<GetCallerIdentityError>),
 }
 

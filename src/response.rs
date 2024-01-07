@@ -50,11 +50,12 @@ pub async fn s3_error_response(
                         .header("Content-Type", mime::TEXT_PLAIN.to_string())
                         .header("Location", format!("/{}", redirect_object))
                         .body(Full::new(Bytes::from(StatusCode::FOUND.as_str())))?),
-                    Err(_) => {
+                    Err(e) => {
                         tracing::warn!(
-                            "no such redirect object: s3://{}/{}",
+                            "no such redirect object: s3://{}/{}: {:?}",
                             bucket,
-                            redirect_object
+                            redirect_object,
+                            e.into_service_error(),
                         );
                         easy_response(StatusCode::NOT_FOUND)
                     }
