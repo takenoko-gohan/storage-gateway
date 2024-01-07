@@ -14,7 +14,7 @@ pub fn easy_response(status_code: StatusCode) -> Result<Response<Full<Bytes>>, R
     ));
 
     Ok(hyper::Response::builder()
-        .header("Content-Type", mime::TEXT_PLAIN.to_string())
+        .header("Content-Type", mime::TEXT_PLAIN.as_ref())
         .status(status_code)
         .body(body)?)
 }
