@@ -5,7 +5,7 @@ use serde::Deserialize;
 pub struct AppConfig {
     root_object: Option<String>,
     subdir_root_object: Option<String>,
-    no_such_key_redirect_path: Option<String>,
+    no_such_key_redirect_object: Option<String>,
     #[serde(default)]
     allow_cross_account: bool,
 }
@@ -32,8 +32,8 @@ impl AppConfig {
         &self.subdir_root_object
     }
 
-    pub fn no_such_key_redirect_path(&self) -> &Option<String> {
-        &self.no_such_key_redirect_path
+    pub fn no_such_key_redirect_object(&self) -> &Option<String> {
+        &self.no_such_key_redirect_object
     }
 
     pub fn allow_cross_account(&self) -> bool {

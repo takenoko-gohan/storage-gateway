@@ -13,7 +13,7 @@ pub enum HandlerError {
 
 pub async fn s3_handle(
     s3_client: &Client,
-    no_such_key_redirect_path: Option<String>,
+    no_such_key_redirect_object: Option<String>,
     self_account_id: Option<String>,
     bucket: &str,
     key: &str,
@@ -43,10 +43,12 @@ pub async fn s3_handle(
                 e
             );
             return Ok(response::s3_error_response(
+                s3_client,
+                bucket,
                 e.into_service_error().is_no_such_key(),
-                key,
-                no_such_key_redirect_path,
-            )?);
+                no_such_key_redirect_object,
+            )
+            .await?);
         }
     };
 

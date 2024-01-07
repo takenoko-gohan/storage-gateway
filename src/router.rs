@@ -17,7 +17,7 @@ pub async fn gateway_route(
     s3_client: aws_sdk_s3::Client,
     root_object: Option<String>,
     subdir_root_object: Option<String>,
-    no_such_key_redirect_path: Option<String>,
+    no_such_key_redirect_object: Option<String>,
     self_account_id: Option<String>,
 ) -> Result<Response<Full<Bytes>>, RouterError> {
     let bucket = if let Some(header) = req.headers().get("Host") {
@@ -47,7 +47,7 @@ pub async fn gateway_route(
     match req.method() {
         &Method::GET => Ok(handler::s3_handle(
             &s3_client,
-            no_such_key_redirect_path,
+            no_such_key_redirect_object,
             self_account_id,
             bucket,
             key,

@@ -47,7 +47,7 @@ pub struct Server {
     #[builder(default)]
     subdir_root_object: Option<String>,
     #[builder(default)]
-    no_such_key_redirect_path: Option<String>,
+    no_such_key_redirect_object: Option<String>,
     #[builder(default)]
     allow_cross_account: bool,
 }
@@ -97,7 +97,7 @@ where
                     .s3_client(s3_client)
                     .root_object(input.root_object)
                     .subdir_root_object(input.subdir_root_object)
-                    .no_such_key_redirect_path(input.no_such_key_redirect_path)
+                    .no_such_key_redirect_object(input.no_such_key_redirect_object)
                     .self_account_id(self_account_id)
                     .build();
                 serve(listener, svc).await

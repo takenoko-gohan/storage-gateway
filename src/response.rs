@@ -29,22 +29,35 @@ pub fn s3_ok_response(
         .body(Full::new(body))?)
 }
 
-pub fn s3_error_response(
+pub async fn s3_error_response(
+    s3_client: &aws_sdk_s3::Client,
+    bucket: &str,
     is_no_such_key: bool,
-    key: &str,
-    no_such_key_redirect_path: Option<String>,
+    no_such_key_redirect_object: Option<String>,
 ) -> Result<Response<Full<Bytes>>, ResponseError> {
     if is_no_such_key {
-        match no_such_key_redirect_path {
-            Some(redirect_path) => {
-                if key == redirect_path {
-                    easy_response(StatusCode::NOT_FOUND)
-                } else {
-                    Ok(Response::builder()
+        match no_such_key_redirect_object {
+            Some(redirect_object) => {
+                match s3_client
+                    .head_object()
+                    .bucket(bucket)
+                    .key(&redirect_object)
+                    .send()
+                    .await
+                {
+                    Ok(_) => Ok(Response::builder()
                         .status(StatusCode::FOUND)
                         .header("Content-Type", mime::TEXT_PLAIN.to_string())
-                        .header("Location", redirect_path)
-                        .body(Full::new(Bytes::from(StatusCode::FOUND.as_str())))?)
+                        .header("Location", format!("/{}", redirect_object))
+                        .body(Full::new(Bytes::from(StatusCode::FOUND.as_str())))?),
+                    Err(_) => {
+                        tracing::warn!(
+                            "no such redirect object: s3://{}/{}",
+                            bucket,
+                            redirect_object
+                        );
+                        easy_response(StatusCode::NOT_FOUND)
+                    }
                 }
             }
             None => easy_response(StatusCode::NOT_FOUND),

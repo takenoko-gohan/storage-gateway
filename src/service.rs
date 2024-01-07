@@ -19,7 +19,7 @@ pub struct GatewayService {
     s3_client: aws_sdk_s3::Client,
     root_object: Option<String>,
     subdir_root_object: Option<String>,
-    no_such_key_redirect_path: Option<String>,
+    no_such_key_redirect_object: Option<String>,
     self_account_id: Option<String>,
 }
 
@@ -32,7 +32,7 @@ impl Service<Request<Incoming>> for GatewayService {
         let s3_client = self.s3_client.clone();
         let default_root = self.root_object.clone();
         let default_subdir_root = self.subdir_root_object.clone();
-        let no_such_key_redirect = self.no_such_key_redirect_path.clone();
+        let no_such_key_redirect = self.no_such_key_redirect_object.clone();
         let self_account_id = self.self_account_id.clone();
 
         Box::pin(async move {

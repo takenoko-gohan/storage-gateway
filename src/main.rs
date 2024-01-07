@@ -22,7 +22,7 @@ async fn main() -> Result<(), Error> {
         .server_type(server::ServerType::Gateway)
         .root_object(config.root_object().clone())
         .subdir_root_object(config.subdir_root_object().clone())
-        .no_such_key_redirect_path(config.no_such_key_redirect_path().clone())
+        .no_such_key_redirect_object(config.no_such_key_redirect_object().clone())
         .allow_cross_account(config.allow_cross_account())
         .build();
     let management = server::Server::builder()
