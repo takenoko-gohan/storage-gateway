@@ -100,20 +100,7 @@ pub struct Mock {
 
 #[cfg(feature = "__tests")]
 impl Mock {
-    pub fn new(expected_bucket_owner: Vec<(String, String)>) -> Self {
-        let config = aws_sdk_s3::Config::builder()
-            .credentials_provider(aws_sdk_s3::config::Credentials::new(
-                "012345678901",
-                "dummy",
-                None,
-                None,
-                "tests",
-            ))
-            .region(aws_sdk_s3::config::Region::new("us-east-1"))
-            .endpoint_url("http://host.docker.internal:4566")
-            .force_path_style(true)
-            .behavior_version_latest()
-            .build();
+    pub fn new(config: aws_sdk_s3::Config, expected_bucket_owner: Vec<(String, String)>) -> Self {
         Self {
             inner_client: aws_sdk_s3::Client::from_conf(config),
             expected_bucket_owner,

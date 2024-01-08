@@ -94,11 +94,19 @@ where
                 #[cfg(not(feature = "__tests"))]
                 let s3_client = s3::Client::new().await;
                 #[cfg(feature = "__tests")]
-                let s3_client = s3::Mock::new(vec![
-                    ("foo.example.com".to_string(), "012345678901".to_string()),
-                    ("bar.example.net".to_string(), "012345678901".to_string()),
-                    ("foobar.example.com".to_string(), "123456789012".to_string()),
-                ]);
+                let s3_client = {
+                    let config = aws_sdk_s3::config::Builder::from(&aws_config)
+                        .force_path_style(true)
+                        .build();
+                    s3::Mock::new(
+                        config,
+                        vec![
+                            ("foo.example.com".to_string(), "012345678901".to_string()),
+                            ("bar.example.net".to_string(), "012345678901".to_string()),
+                            ("foobar.example.com".to_string(), "123456789012".to_string()),
+                        ],
+                    )
+                };
 
                 let svc = service::GatewayService::builder()
                     .s3_client(s3_client)
