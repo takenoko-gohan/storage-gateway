@@ -1,6 +1,6 @@
 use crate::response;
 use crate::response::ResponseError;
-use aws_sdk_s3::Client;
+use crate::s3::S3;
 use bytes::Bytes;
 use http_body_util::Full;
 use hyper::{Response, StatusCode};
@@ -11,23 +11,20 @@ pub enum HandlerError {
     Response(#[from] ResponseError),
 }
 
-pub async fn s3_handle(
-    s3_client: &Client,
+pub async fn s3_handle<T>(
+    s3_client: &T,
     no_such_key_redirect_object: Option<String>,
     self_account_id: Option<String>,
     bucket: &str,
     key: &str,
-) -> Result<Response<Full<Bytes>>, HandlerError> {
+) -> Result<Response<Full<Bytes>>, HandlerError>
+where
+    T: S3 + Send + Sync + 'static,
+{
     tracing::info!("get object: s3://{}/{}", bucket, key);
 
     if let Some(id) = self_account_id {
-        if let Err(e) = s3_client
-            .head_bucket()
-            .bucket(bucket)
-            .expected_bucket_owner(id)
-            .send()
-            .await
-        {
+        if let Err(e) = s3_client.head_bucket(bucket, &id).await {
             tracing::warn!(
                 "failed to head bucket: bucket: {} e: {:?}",
                 bucket,
@@ -37,7 +34,7 @@ pub async fn s3_handle(
         }
     }
 
-    let resp = match s3_client.get_object().bucket(bucket).key(key).send().await {
+    let resp = match s3_client.get_object(bucket, key).await {
         Ok(resp) => resp,
         Err(e) => {
             let error = e.into_service_error();
@@ -57,7 +54,7 @@ pub async fn s3_handle(
         }
     };
 
-    let body = match resp.body.collect().await {
+    let body = match resp.body().collect().await {
         Ok(body) => body.into_bytes(),
         Err(e) => {
             tracing::error!("failed to collect body: {:?}", e);

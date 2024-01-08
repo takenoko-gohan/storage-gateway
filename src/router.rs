@@ -1,3 +1,4 @@
+use crate::s3::S3;
 use crate::{handler, response};
 use bytes::Bytes;
 use http_body_util::Full;
@@ -12,14 +13,17 @@ pub enum RouterError {
     Handler(#[from] handler::HandlerError),
 }
 
-pub async fn gateway_route(
+pub async fn gateway_route<T>(
     req: Request<Incoming>,
-    s3_client: aws_sdk_s3::Client,
+    s3_client: T,
     root_object: Option<String>,
     subdir_root_object: Option<String>,
     no_such_key_redirect_object: Option<String>,
     self_account_id: Option<String>,
-) -> Result<Response<Full<Bytes>>, RouterError> {
+) -> Result<Response<Full<Bytes>>, RouterError>
+where
+    T: S3 + Send + Sync + 'static,
+{
     let bucket = if let Some(header) = req.headers().get("Host") {
         header
             .to_str()

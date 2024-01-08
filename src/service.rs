@@ -1,4 +1,5 @@
 use crate::router;
+use crate::s3::S3;
 use bytes::Bytes;
 use http_body_util::Full;
 use hyper::body::Incoming;
@@ -15,15 +16,18 @@ pub enum ServiceError {
 }
 
 #[derive(Debug, Clone, TypedBuilder)]
-pub struct GatewayService {
-    s3_client: aws_sdk_s3::Client,
+pub struct GatewayService<T> {
+    s3_client: T,
     root_object: Option<String>,
     subdir_root_object: Option<String>,
     no_such_key_redirect_object: Option<String>,
     self_account_id: Option<String>,
 }
 
-impl Service<Request<Incoming>> for GatewayService {
+impl<T> Service<Request<Incoming>> for GatewayService<T>
+where
+    T: S3 + Clone + Send + Sync + 'static,
+{
     type Response = Response<Full<Bytes>>;
     type Error = ServiceError;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;

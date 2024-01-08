@@ -1,4 +1,4 @@
-use crate::service;
+use crate::{s3, service};
 use aws_config::BehaviorVersion;
 #[cfg(feature = "__tests")]
 use aws_config::Region;
@@ -92,14 +92,13 @@ where
                 };
 
                 #[cfg(not(feature = "__tests"))]
-                let s3_client =
-                    aws_sdk_s3::Client::from_conf(aws_sdk_s3::Config::from(&aws_config));
+                let s3_client = s3::Client::new().await;
                 #[cfg(feature = "__tests")]
-                let s3_client = aws_sdk_s3::Client::from_conf(
-                    aws_sdk_s3::config::Builder::from(&aws_config)
-                        .force_path_style(true)
-                        .build(),
-                );
+                let s3_client = s3::Mock::new(vec![
+                    ("foo.example.com".to_string(), "012345678901".to_string()),
+                    ("bar.example.net".to_string(), "012345678901".to_string()),
+                    ("foobar.example.com".to_string(), "123456789012".to_string()),
+                ]);
 
                 let svc = service::GatewayService::builder()
                     .s3_client(s3_client)

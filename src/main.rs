@@ -7,6 +7,7 @@ mod response;
 mod router;
 mod server;
 mod service;
+mod s3;
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 
