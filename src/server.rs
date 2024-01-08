@@ -78,7 +78,7 @@ where
                         "tests",
                     )))
                     .region(Region::new("us-east-1"))
-                    .endpoint_url("http://127.0.0.1:4566")
+                    .endpoint_url("http://host.docker.internal:4566")
                     .behavior_version(BehaviorVersion::latest())
                     .build();
 
@@ -91,8 +91,16 @@ where
                     None
                 };
 
+                #[cfg(not(feature = "__tests"))]
                 let s3_client =
                     aws_sdk_s3::Client::from_conf(aws_sdk_s3::Config::from(&aws_config));
+                #[cfg(feature = "__tests")]
+                let s3_client = aws_sdk_s3::Client::from_conf(
+                    aws_sdk_s3::config::Builder::from(&aws_config)
+                        .force_path_style(true)
+                        .build(),
+                );
+
                 let svc = service::GatewayService::builder()
                     .s3_client(s3_client)
                     .root_object(input.root_object)
