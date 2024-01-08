@@ -92,6 +92,13 @@ impl S3 for Client {
 }
 
 #[cfg(feature = "__tests")]
+#[derive(Debug, thiserror::Error)]
+pub enum MockError {
+    #[error("bucket owner is different: {0}")]
+    BucketOwner(String),
+}
+
+#[cfg(feature = "__tests")]
 #[derive(Debug, Clone)]
 pub struct Mock {
     inner_client: aws_sdk_s3::Client,
@@ -148,7 +155,9 @@ impl S3 for Mock {
         if result {
             Ok(())
         } else {
-            let source = HeadBucketError::unhandled(anyhow::anyhow!("bucket owner is different"));
+            let source = HeadBucketError::unhandled(MockError::BucketOwner(
+                expected_bucket_owner.to_string(),
+            ));
             let raw = aws_smithy_runtime_api::http::Response::new(
                 aws_smithy_runtime_api::http::StatusCode::try_from(403).unwrap(),
                 aws_smithy_types::body::SdkBody::empty(),
