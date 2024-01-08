@@ -17,6 +17,6 @@ FROM gcr.io/distroless/cc-debian11
 
 COPY --from=prepare /tmp/storage-gateway /usr/local/bin/storage-gateway
 
-EXPOSE 80
+EXPOSE 80 8080
 
 ENTRYPOINT ["/usr/local/bin/storage-gateway"]
