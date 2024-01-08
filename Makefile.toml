@@ -9,21 +9,25 @@ args = ["kill", "localstack"]
 [tasks.create-bucket]
 env = { AWS_SECRET_ACCESS_KEY = "dummy", AWS_DEFAULT_REGION = "us-east-1" }
 script = [
-    "AWS_ACCESS_KEY_ID='123456789012' aws --endpoint-url=http://localhost:4566 s3 mb s3://localhost",
-    "AWS_ACCESS_KEY_ID='123456789012' aws --endpoint-url=http://localhost:4566 s3 sync ./tests/data s3://localhost",
-    "AWS_ACCESS_KEY_ID='234567890123' aws --endpoint-url=http://localhost:4566 s3 mb s3://test1.localhost",
-    "AWS_ACCESS_KEY_ID='234567890123' aws --endpoint-url=http://localhost:4566 s3 sync ./tests/data s3://test1.localhost",
+    "AWS_ACCESS_KEY_ID='012345678901' aws --endpoint-url=http://localhost:4566 s3 mb s3://foo.example.com",
+    "AWS_ACCESS_KEY_ID='012345678901' aws --endpoint-url=http://localhost:4566 s3 sync ./tests/data s3://foo.example.com",
+    "AWS_ACCESS_KEY_ID='012345678901' aws --endpoint-url=http://localhost:4566 s3 mb s3://bar.example.net",
+    "AWS_ACCESS_KEY_ID='012345678901' aws --endpoint-url=http://localhost:4566 s3 sync ./tests/data s3://bar.example.net",
+    "AWS_ACCESS_KEY_ID='123456789012' aws --endpoint-url=http://localhost:4566 s3 mb s3://foobar.example.com",
+    "AWS_ACCESS_KEY_ID='123456789012' aws --endpoint-url=http://localhost:4566 s3 sync ./tests/data s3://foobar.example.com",
 ]
 
 [tasks.create-bucket.windows]
 env = { AWS_SECRET_ACCESS_KEY = "dummy", AWS_DEFAULT_REGION = "us-east-1" }
 script = [
+    "set AWS_ACCESS_KEY_ID='012345678901'",
+    "aws --endpoint-url=http://localhost:4566 s3 mb s3://foo.example.com",
+    "aws --endpoint-url=http://localhost:4566 s3 sync ./tests/data s3://foo.example.com",
+    "aws --endpoint-url=http://localhost:4566 s3 mb s3://bar.example.net",
+    "aws --endpoint-url=http://localhost:4566 s3 sync ./tests/data s3://bar.example.net",
     "set AWS_ACCESS_KEY_ID='123456789012'",
-    "aws --endpoint-url=http://localhost:4566 s3 mb s3://localhost",
-    "aws --endpoint-url=http://localhost:4566 s3 sync ./tests/data s3://localhost",
-    "set AWS_ACCESS_KEY_ID='234567890123'",
-    "aws --endpoint-url=http://localhost:4566 s3 mb s3://another-account-bucket",
-    "aws --endpoint-url=http://localhost:4566 s3 sync ./tests/data s3://another-account-bucket",
+    "aws --endpoint-url=http://localhost:4566 s3 mb s3://foobar.example.com",
+    "aws --endpoint-url=http://localhost:4566 s3 sync ./tests/data s3://foobar.example.com",
 ]
 
 [tasks.local-setup]
@@ -37,14 +41,39 @@ run_task = { name = [
     "localstack-teardown",
 ], fork = true }
 
-[tasks.unit-tests]
+[tasks.aarch64-test-build]
 command = "cargo"
-args = ["test", "--", "--test-threads=1"]
+install_crate = "cargo-zigbuild"
+args = ["zigbuild", "--target", "aarch64-unknown-linux-gnu", "--features", "__tests", "--release"]
 
-[tasks.llvm-cov-open]
+[tasks.x86_64-test-build]
 command = "cargo"
-install_crate = "cargo-llvm-cov"
-args = ["llvm-cov", "--open", "test", "--", "--test-threads=1"]
+install_crate = "cargo-zigbuild"
+args = ["zigbuild", "--target", "x86_64-unknown-linux-gnu", "--features", "__tests", "--release"]
+
+[tasks.buildx-test-build]
+script = [
+    "docker buildx create --use --name mybuilder",
+    "docker buildx build --load -t test-storage-gateway .",
+]
+
+[tasks.test-container-build]
+run_task = { name = [
+    "aarch64-test-build",
+    "x86_64-test-build",
+    "buildx-test-build",
+], fork = true }
+
+[tasks.cargo-integration-test]
+command = "cargo"
+args = ["test", "--test", "integration_test"]
+
+[tasks.integration-test]
+run_task = { name = [
+    "test-container-build",
+    "local-setup",
+    "cargo-integration-test",
+], fork = true, cleanup_task = "local-teardown" }
 
 [tasks.aarch64-build]
 command = "cargo"
@@ -56,20 +85,15 @@ command = "cargo"
 install_crate = "cargo-zigbuild"
 args = ["zigbuild", "--target", "x86_64-unknown-linux-gnu", "--release"]
 
-[tasks.all-build]
-run_task = { name = [
-    "aarch64-build",
-    "x86_64-build",
-], fork = true }
-
 [tasks.buildx-build]
 script = [
     "docker buildx create --use --name mybuilder",
-    "docker buildx build --progress plain --platform linux/arm64,linux/amd64 -t storage-gateway .",
+    "docker buildx build --platform linux/arm64,linux/amd64 -t storage-gateway .",
 ]
 
 [tasks.container-build]
 run_task = { name = [
-    "all-build",
+    "aarch64-build",
+    "x86_64-build",
     "buildx-build",
 ], fork = true }

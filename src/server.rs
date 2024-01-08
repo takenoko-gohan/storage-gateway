@@ -71,7 +71,7 @@ where
                 #[cfg(feature = "__tests")]
                 let aws_config = aws_config::SdkConfig::builder()
                     .credentials_provider(SharedCredentialsProvider::new(Credentials::new(
-                        "123456789012",
+                        "012345678901",
                         "dummy",
                         None,
                         None,
