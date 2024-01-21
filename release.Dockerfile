@@ -2,8 +2,8 @@ FROM alpine:latest AS prepare
 
 ARG TARGETPLATFORM
 
-COPY target/x86_64-unknown-linux-gnu/release/storage-gateway amd64/storage-gateway
-COPY target/aarch64-unknown-linux-gnu/release/storage-gateway arm64/storage-gateway
+COPY target/x86_64-unknown-linux-musl/release/storage-gateway amd64/storage-gateway
+COPY target/aarch64-unknown-linux-musl/release/storage-gateway arm64/storage-gateway
 
 RUN echo "Platform: ${TARGETPLATFORM}"
 RUN case "${TARGETPLATFORM}" in \
@@ -13,7 +13,7 @@ RUN case "${TARGETPLATFORM}" in \
     esac
 
 
-FROM gcr.io/distroless/cc-debian11
+FROM gcr.io/distroless/static-debian12:nonroot
 
 COPY --from=prepare /tmp/storage-gateway /usr/local/bin/storage-gateway
 

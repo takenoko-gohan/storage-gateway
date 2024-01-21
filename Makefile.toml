@@ -1,6 +1,8 @@
 [tasks.localstack-setup]
-command = "docker"
-args = ["run", "--rm", "-it", "-d", "--name", "localstack", "-p", "4566:4566", "-e", "SERVICES=sts,s3", "localstack/localstack"]
+script = [
+    "docker run --rm -it -d --name localstack -p 4566:4566 -e SERVICES=sts,s3 localstack/localstack",
+    "sleep 5",
+]
 
 [tasks.localstack-teardown]
 command = "docker"
@@ -41,59 +43,43 @@ run_task = { name = [
     "localstack-teardown",
 ], fork = true }
 
-[tasks.aarch64-test-build]
-command = "cargo"
+[tasks.test-bin-build]
 install_crate = "cargo-zigbuild"
-args = ["zigbuild", "--target", "aarch64-unknown-linux-gnu", "--features", "__tests", "--release"]
-
-[tasks.x86_64-test-build]
-command = "cargo"
-install_crate = "cargo-zigbuild"
-args = ["zigbuild", "--target", "x86_64-unknown-linux-gnu", "--features", "__tests", "--release"]
-
-[tasks.buildx-test-build]
 script = [
-    "docker buildx create --use --name mybuilder",
-    "docker buildx build --load -t test-storage-gateway .",
+    "cargo zigbuild --target ${CARGO_MAKE_RUST_TARGET_ARCH}-unknown-linux-musl --features __tests",
+    "cp target/${CARGO_MAKE_RUST_TARGET_ARCH}-unknown-linux-musl/debug/storage-gateway target/debug/storage-gateway",
 ]
 
 [tasks.test-container-build]
-run_task = { name = [
-    "aarch64-test-build",
-    "x86_64-test-build",
-    "buildx-test-build",
-], fork = true }
+dependencies = ["test-bin-build"]
+command = "docker"
+args = ["build", "-t", "test-storage-gateway", "-f", "test.Dockerfile", "."]
 
-[tasks.cargo-integration-test]
+[tasks.integration-test]
 command = "cargo"
 args = ["test", "--test", "integration_test"]
 
-[tasks.integration-test]
+[tasks.local-integration-test]
 run_task = { name = [
     "test-container-build",
     "local-setup",
-    "cargo-integration-test",
+    "integration-test",
 ], fork = true, cleanup_task = "local-teardown" }
 
 [tasks.aarch64-build]
 command = "cargo"
 install_crate = "cargo-zigbuild"
-args = ["zigbuild", "--target", "aarch64-unknown-linux-gnu", "--release"]
+args = ["zigbuild", "--target", "aarch64-unknown-linux-musl", "--release"]
 
 [tasks.x86_64-build]
 command = "cargo"
 install_crate = "cargo-zigbuild"
-args = ["zigbuild", "--target", "x86_64-unknown-linux-gnu", "--release"]
-
-[tasks.buildx-build]
-script = [
-    "docker buildx create --use --name mybuilder",
-    "docker buildx build --platform linux/arm64,linux/amd64 -t storage-gateway .",
-]
+args = ["zigbuild", "--target", "x86_64-unknown-linux-musl", "--release"]
 
 [tasks.container-build]
-run_task = { name = [
-    "aarch64-build",
-    "x86_64-build",
-    "buildx-build",
-], fork = true }
+dependencies = ["aarch64-build", "x86_64-build"]
+script = [
+    "docker buildx create --use --name builder",
+    "docker buildx build --platform linux/arm64,linux/amd64 -t storage-gateway -f release.Dockerfile .",
+    "docker buildx rm builder",
+]
