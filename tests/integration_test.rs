@@ -23,6 +23,9 @@ async fn test_default() {
         container.get_host_port_ipv4(80)
     ));
 
+    let root_resp = client.get("foo.example.com", "").await;
+    assert_eq!(root_resp.status(), 404);
+
     let index_resp = client.get("foo.example.com", INDEX_PATH).await;
     assert_eq!(index_resp.status(), 200);
     assert_eq!(
