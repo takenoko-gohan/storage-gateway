@@ -48,6 +48,10 @@ where
     }
     let key = path.trim_start_matches('/');
 
+    if key.is_empty() {
+        return Ok(response::easy_response(StatusCode::NOT_FOUND)?);
+    }
+
     match req.method() {
         &Method::GET => Ok(handler::s3_handle(
             &s3_client,
