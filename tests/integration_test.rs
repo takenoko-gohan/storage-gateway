@@ -1,6 +1,5 @@
-mod sheard;
+mod sheared;
 
-use std::collections::HashMap;
 use testcontainers::clients::Cli;
 
 const INDEX_PATH: &str = "/index.html";
@@ -18,8 +17,8 @@ const SUBDIR_INDEX_BODY: &str = include_str!("./data/subdir1/index.html");
 #[ignore]
 async fn test_default() {
     let docker = Cli::default();
-    let container = docker.run(sheard::TestImage::default());
-    let client = sheard::HttpClient::new(format!(
+    let container = docker.run(sheared::TestImage::default());
+    let client = sheared::HttpClient::new(format!(
         "http://localhost:{}",
         container.get_host_port_ipv4(80)
     ));
@@ -62,11 +61,11 @@ async fn test_default() {
 #[ignore]
 async fn test_root_object() {
     let docker = Cli::default();
-    let container = docker.run(sheard::TestImage::new(HashMap::from([(
-        "GW_ROOT_OBJECT".to_string(),
-        "index.html".to_string(),
-    )])));
-    let client = sheard::HttpClient::new(format!(
+    let container = docker.run(sheared::TestImage::default().with_env_var(
+        "GW_ROOT_OBJECT",
+        "index.html",
+    ));
+    let client = sheared::HttpClient::new(format!(
         "http://localhost:{}",
         container.get_host_port_ipv4(80)
     ));
@@ -84,11 +83,11 @@ async fn test_root_object() {
 #[ignore]
 async fn test_subdir_root_object() {
     let docker = Cli::default();
-    let container = docker.run(sheard::TestImage::new(HashMap::from([(
-        "GW_SUBDIR_ROOT_OBJECT".to_string(),
-        "index.html".to_string(),
-    )])));
-    let client = sheard::HttpClient::new(format!(
+    let container = docker.run(sheared::TestImage::default().with_env_var(
+        "GW_SUBDIR_ROOT_OBJECT",
+        "index.html",
+    ));
+    let client = sheared::HttpClient::new(format!(
         "http://localhost:{}",
         container.get_host_port_ipv4(80)
     ));
@@ -106,11 +105,11 @@ async fn test_subdir_root_object() {
 #[ignore]
 async fn test_no_such_key_redirect_object() {
     let docker = Cli::default();
-    let container = docker.run(sheard::TestImage::new(HashMap::from([(
-        "GW_NO_SUCH_KEY_REDIRECT_OBJECT".to_string(),
-        "index.html".to_string(),
-    )])));
-    let client = sheard::HttpClient::new(format!(
+    let container = docker.run(sheared::TestImage::default().with_env_var(
+        "GW_NO_SUCH_KEY_REDIRECT_OBJECT",
+        "index.html",
+    ));
+    let client = sheared::HttpClient::new(format!(
         "http://localhost:{}",
         container.get_host_port_ipv4(80)
     ));
@@ -128,11 +127,11 @@ async fn test_no_such_key_redirect_object() {
 #[ignore]
 async fn test_allow_cross_account() {
     let docker = Cli::default();
-    let container = docker.run(sheard::TestImage::new(HashMap::from([(
-        "GW_ALLOW_CROSS_ACCOUNT".to_string(),
-        "true".to_string(),
-    )])));
-    let client = sheard::HttpClient::new(format!(
+    let container = docker.run(sheared::TestImage::default().with_env_var(
+        "GW_ALLOW_CROSS_ACCOUNT",
+        "true",
+    ));
+    let client = sheared::HttpClient::new(format!(
         "http://localhost:{}",
         container.get_host_port_ipv4(80)
     ));
@@ -144,4 +143,43 @@ async fn test_allow_cross_account() {
         mime::TEXT_HTML.as_ref()
     );
     assert_eq!(cross_account_resp.text().await.unwrap(), INDEX_BODY);
+}
+
+#[tokio::test]
+#[ignore]
+async fn test_host_header_empty() {
+    let docker = Cli::default();
+    let container = docker.run(sheared::TestImage::default());
+    let client = sheared::HttpClient::new(format!(
+        "http://localhost:{}",
+        container.get_host_port_ipv4(80)
+    ));
+
+    let root_resp = client.get("", INDEX_PATH).await;
+    assert_eq!(root_resp.status(), 400);
+}
+
+#[tokio::test]
+#[ignore]
+async fn test_allow_domains() {
+    let docker = Cli::default();
+    let container = docker.run(sheared::TestImage::default().with_env_var(
+        "GW_ALLOW_DOMAINS",
+        "*.example.com,bar.*.*,bar.*.net,*",
+    ));
+    let client = sheared::HttpClient::new(format!(
+        "http://localhost:{}",
+        container.get_host_port_ipv4(80)
+    ));
+
+    let foo_resp = client.get("foo.example.com", INDEX_PATH).await;
+    assert_eq!(foo_resp.status(), 200);
+    assert_eq!(
+        foo_resp.headers()["Content-Type"],
+        mime::TEXT_HTML.as_ref()
+    );
+    assert_eq!(foo_resp.text().await.unwrap(), INDEX_BODY);
+
+    let bar_resp = client.get("bar.example.net", INDEX_PATH).await;
+    assert_eq!(bar_resp.status(), 403);
 }

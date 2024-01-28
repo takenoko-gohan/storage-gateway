@@ -64,7 +64,7 @@ args = ["build", "-t", "test-storage-gateway", "-f", "test.Dockerfile", "."]
 
 [tasks.integration-test]
 command = "cargo"
-args = ["test", "--test", "integration_test"]
+args = ["test", "--test", "integration_test", "--", "--ignored"]
 
 [tasks.local-integration-test]
 run_task = { name = [

@@ -2,14 +2,15 @@ use std::collections::HashMap;
 use testcontainers::core::WaitFor;
 use testcontainers::Image;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct TestImage {
     env_vars: HashMap<String, String>,
 }
 
 impl TestImage {
-    pub fn new(env_vars: HashMap<String, String>) -> Self {
-        Self { env_vars }
+    pub fn with_env_var(mut self, key: &str, value: &str) -> Self {
+        self.env_vars.insert(key.to_string(), value.to_string());
+        self
     }
 }
 
@@ -30,6 +31,17 @@ impl Image for TestImage {
 
     fn env_vars(&self) -> Box<dyn Iterator<Item = (&String, &String)> + '_> {
         Box::new(self.env_vars.iter())
+    }
+}
+
+impl Default for TestImage {
+    fn default() -> Self {
+        let mut env_vars = HashMap::new();
+        env_vars.insert("GW_ALLOW_DOMAINS".to_string(), "*.example.com,*.example.net".to_string());
+
+        Self {
+            env_vars,
+        }
     }
 }
 
