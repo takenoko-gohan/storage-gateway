@@ -3,6 +3,7 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub struct AppConfig {
+    allow_domains: Vec<String>,
     root_object: Option<String>,
     subdir_root_object: Option<String>,
     no_such_key_redirect_object: Option<String>,
@@ -28,6 +29,8 @@ impl AppConfig {
             .add_source(
                 Environment::with_prefix("GW")
                     .prefix_separator("_")
+                    .list_separator(",")
+                    .with_list_parse_key("allow_domains")
                     .try_parsing(true),
             )
             .build()
