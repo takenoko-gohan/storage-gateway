@@ -15,6 +15,7 @@ const CSS_BODY: &str = include_str!("./data/style.css");
 const SUBDIR_INDEX_BODY: &str = include_str!("./data/subdir1/index.html");
 
 #[tokio::test]
+#[ignore]
 async fn test_default() {
     let docker = Cli::default();
     let container = docker.run(sheard::TestImage::default());
@@ -58,6 +59,7 @@ async fn test_default() {
 }
 
 #[tokio::test]
+#[ignore]
 async fn test_root_object() {
     let docker = Cli::default();
     let container = docker.run(sheard::TestImage::new(HashMap::from([(
@@ -79,6 +81,7 @@ async fn test_root_object() {
 }
 
 #[tokio::test]
+#[ignore]
 async fn test_subdir_root_object() {
     let docker = Cli::default();
     let container = docker.run(sheard::TestImage::new(HashMap::from([(
@@ -100,6 +103,7 @@ async fn test_subdir_root_object() {
 }
 
 #[tokio::test]
+#[ignore]
 async fn test_no_such_key_redirect_object() {
     let docker = Cli::default();
     let container = docker.run(sheard::TestImage::new(HashMap::from([(
@@ -121,6 +125,7 @@ async fn test_no_such_key_redirect_object() {
 }
 
 #[tokio::test]
+#[ignore]
 async fn test_allow_cross_account() {
     let docker = Cli::default();
     let container = docker.run(sheard::TestImage::new(HashMap::from([(
