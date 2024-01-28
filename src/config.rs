@@ -3,16 +3,16 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub struct AppConfig {
-    allow_domains: Vec<String>,
-    root_object: Option<String>,
-    subdir_root_object: Option<String>,
-    no_such_key_redirect_object: Option<String>,
+    pub allow_domains: Vec<String>,
+    pub root_object: Option<String>,
+    pub subdir_root_object: Option<String>,
+    pub no_such_key_redirect_object: Option<String>,
     #[serde(default)]
-    allow_cross_account: bool,
+    pub allow_cross_account: bool,
     #[serde(default = "default_gateway_port")]
-    gateway_port: u16,
+    pub gateway_port: u16,
     #[serde(default = "default_management_port")]
-    management_port: u16,
+    pub management_port: u16,
 }
 
 fn default_gateway_port() -> u16 {
@@ -37,29 +37,5 @@ impl AppConfig {
             .expect("Failed to build config")
             .try_deserialize()
             .expect("Failed to deserialize config")
-    }
-
-    pub fn root_object(&self) -> &Option<String> {
-        &self.root_object
-    }
-
-    pub fn subdir_root_object(&self) -> &Option<String> {
-        &self.subdir_root_object
-    }
-
-    pub fn no_such_key_redirect_object(&self) -> &Option<String> {
-        &self.no_such_key_redirect_object
-    }
-
-    pub fn allow_cross_account(&self) -> bool {
-        self.allow_cross_account
-    }
-
-    pub fn gateway_port(&self) -> u16 {
-        self.gateway_port
-    }
-
-    pub fn management_port(&self) -> u16 {
-        self.management_port
     }
 }

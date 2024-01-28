@@ -16,6 +16,7 @@ pub enum RouterError {
 pub async fn gateway_route<T>(
     req: Request<Incoming>,
     s3_client: T,
+    allow_domains: Vec<String>,
     root_object: Option<String>,
     subdir_root_object: Option<String>,
     no_such_key_redirect_object: Option<String>,

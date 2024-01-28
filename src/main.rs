@@ -18,17 +18,16 @@ async fn main() -> Result<(), Error> {
     let config = config::AppConfig::new();
     tracing::info!("application config: {:?}", config);
 
-    let gateway = server::Server::builder()
-        .addr(SocketAddr::from(([0, 0, 0, 0], config.gateway_port())))
-        .server_type(server::ServerType::Gateway)
-        .root_object(config.root_object().clone())
-        .subdir_root_object(config.subdir_root_object().clone())
-        .no_such_key_redirect_object(config.no_such_key_redirect_object().clone())
-        .allow_cross_account(config.allow_cross_account())
+    let gateway = server::GatewayServer::builder()
+        .addr(SocketAddr::from(([0, 0, 0, 0], config.gateway_port)))
+        .allow_domains(config.allow_domains)
+        .root_object(config.root_object)
+        .subdir_root_object(config.subdir_root_object)
+        .no_such_key_redirect_object(config.no_such_key_redirect_object)
+        .allow_cross_account(config.allow_cross_account)
         .build();
-    let management = server::Server::builder()
-        .addr(SocketAddr::from(([0, 0, 0, 0], config.management_port())))
-        .server_type(server::ServerType::Management)
+    let management = server::ManagementServer::builder()
+        .addr(SocketAddr::from(([0, 0, 0, 0], config.management_port)))
         .build();
 
     try_join(gateway, management).await?;

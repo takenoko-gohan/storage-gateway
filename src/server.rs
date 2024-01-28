@@ -28,20 +28,13 @@ pub enum ServerError {
     GetSelfAccountId(#[from] aws_sdk_sts::error::SdkError<GetCallerIdentityError>),
 }
 
-#[derive(Debug, Default)]
-pub enum ServerType {
-    #[default]
-    Gateway,
-    Management,
-}
-
 #[derive(TypedBuilder)]
 #[builder(
     build_method(vis="", name=__build)
 )]
-pub struct Server {
+pub struct GatewayServer {
     addr: SocketAddr,
-    server_type: ServerType,
+    allow_domains: Vec<String>,
     #[builder(default)]
     root_object: Option<String>,
     #[builder(default)]
@@ -52,7 +45,7 @@ pub struct Server {
     allow_cross_account: bool,
 }
 
-impl<T, U> ServerBuilder<((SocketAddr,), (ServerType,), T, T, T, U)>
+impl<T, U> GatewayServerBuilder<((SocketAddr,), (Vec<String>,), T, T, T, U)>
 where
     T: typed_builder::Optional<Option<String>>,
     U: typed_builder::Optional<bool>,
@@ -64,64 +57,78 @@ where
             .await
             .map_err(ServerError::Bind)?;
 
-        match input.server_type {
-            ServerType::Gateway => {
-                #[cfg(not(feature = "__tests"))]
-                let aws_config = aws_config::load_defaults(BehaviorVersion::latest()).await;
-                #[cfg(feature = "__tests")]
-                let aws_config = aws_config::SdkConfig::builder()
-                    .credentials_provider(SharedCredentialsProvider::new(Credentials::new(
-                        "012345678901",
-                        "dummy",
-                        None,
-                        None,
-                        "tests",
-                    )))
-                    .region(Region::new("us-east-1"))
-                    .endpoint_url("http://host.docker.internal:4566")
-                    .behavior_version(BehaviorVersion::latest())
-                    .build();
+        #[cfg(not(feature = "__tests"))]
+        let aws_config = aws_config::load_defaults(BehaviorVersion::latest()).await;
+        #[cfg(feature = "__tests")]
+        let aws_config = aws_config::SdkConfig::builder()
+            .credentials_provider(SharedCredentialsProvider::new(Credentials::new(
+                "012345678901",
+                "dummy",
+                None,
+                None,
+                "tests",
+            )))
+            .region(Region::new("us-east-1"))
+            .endpoint_url("http://host.docker.internal:4566")
+            .behavior_version(BehaviorVersion::latest())
+            .build();
 
-                let self_account_id = if !input.allow_cross_account {
-                    let sts_client =
-                        aws_sdk_sts::Client::from_conf(aws_sdk_sts::Config::from(&aws_config));
-                    let resp = sts_client.get_caller_identity().send().await?;
-                    resp.account
-                } else {
-                    None
-                };
+        let self_account_id = if !input.allow_cross_account {
+            let sts_client =
+                aws_sdk_sts::Client::from_conf(aws_sdk_sts::Config::from(&aws_config));
+            let resp = sts_client.get_caller_identity().send().await?;
+            resp.account
+        } else {
+            None
+        };
 
-                #[cfg(not(feature = "__tests"))]
-                let s3_client = s3::Client::new().await;
-                #[cfg(feature = "__tests")]
-                let s3_client = {
-                    let config = aws_sdk_s3::config::Builder::from(&aws_config)
-                        .force_path_style(true)
-                        .build();
-                    s3::Mock::new(
-                        config,
-                        vec![
-                            ("foo.example.com".to_string(), "012345678901".to_string()),
-                            ("bar.example.net".to_string(), "012345678901".to_string()),
-                            ("foobar.example.com".to_string(), "123456789012".to_string()),
-                        ],
-                    )
-                };
+        #[cfg(not(feature = "__tests"))]
+        let s3_client = s3::Client::new().await;
+        #[cfg(feature = "__tests")]
+        let s3_client = {
+            let config = aws_sdk_s3::config::Builder::from(&aws_config)
+                .force_path_style(true)
+                .build();
+            s3::Mock::new(
+                config,
+                vec![
+                    ("foo.example.com".to_string(), "012345678901".to_string()),
+                    ("bar.example.net".to_string(), "012345678901".to_string()),
+                    ("foobar.example.com".to_string(), "123456789012".to_string()),
+                ],
+            )
+        };
 
-                let svc = service::GatewayService::builder()
-                    .s3_client(s3_client)
-                    .root_object(input.root_object)
-                    .subdir_root_object(input.subdir_root_object)
-                    .no_such_key_redirect_object(input.no_such_key_redirect_object)
-                    .self_account_id(self_account_id)
-                    .build();
-                serve(listener, svc).await
-            }
-            ServerType::Management => {
-                let svc = service::ManagementService;
-                serve(listener, svc).await
-            }
-        }
+        let svc = service::GatewayService::builder()
+            .s3_client(s3_client)
+            .allow_domains(input.allow_domains)
+            .root_object(input.root_object)
+            .subdir_root_object(input.subdir_root_object)
+            .no_such_key_redirect_object(input.no_such_key_redirect_object)
+            .self_account_id(self_account_id)
+            .build();
+        serve(listener, svc).await
+    }
+}
+
+#[derive(TypedBuilder)]
+#[builder(
+    build_method(vis="", name=__build)
+)]
+pub struct ManagementServer {
+    addr: SocketAddr,
+}
+
+impl ManagementServerBuilder<((SocketAddr,),)> {
+    pub async fn build(self) -> Result<(), ServerError> {
+        let input = self.__build();
+
+        let listener = TcpListener::bind(input.addr)
+            .await
+            .map_err(ServerError::Bind)?;
+
+        let svc = service::ManagementService;
+        serve(listener, svc).await
     }
 }
 

@@ -18,6 +18,7 @@ pub enum ServiceError {
 #[derive(Debug, Clone, TypedBuilder)]
 pub struct GatewayService<T> {
     s3_client: T,
+    allow_domains: Vec<String>,
     root_object: Option<String>,
     subdir_root_object: Option<String>,
     no_such_key_redirect_object: Option<String>,
@@ -34,6 +35,7 @@ where
 
     fn call(&self, req: Request<Incoming>) -> Self::Future {
         let s3_client = self.s3_client.clone();
+        let allow_domains = self.allow_domains.clone();
         let default_root = self.root_object.clone();
         let default_subdir_root = self.subdir_root_object.clone();
         let no_such_key_redirect = self.no_such_key_redirect_object.clone();
@@ -43,6 +45,7 @@ where
             router::gateway_route(
                 req,
                 s3_client,
+                allow_domains,
                 default_root,
                 default_subdir_root,
                 no_such_key_redirect,
