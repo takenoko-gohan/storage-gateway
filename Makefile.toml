@@ -66,6 +66,10 @@ args = ["build", "-t", "test-storage-gateway", "-f", "test.Dockerfile", "."]
 command = "cargo"
 args = ["test", "--test", "integration_test", "--", "--ignored"]
 
+[tasks.unit-test]
+command = "cargo"
+args = ["test", "--all", "--", "--nocapture"]
+
 [tasks.local-integration-test]
 run_task = { name = [
     "test-container-build",
