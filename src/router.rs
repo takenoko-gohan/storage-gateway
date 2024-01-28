@@ -24,14 +24,21 @@ pub async fn gateway_route<T>(
 where
     T: S3 + Send + Sync + 'static,
 {
-    let bucket = if let Some(header) = req.headers().get("Host") {
-        header
-            .to_str()
-            .unwrap_or_default()
-            .split(':')
-            .collect::<Vec<&str>>()[0]
-    } else {
-        return Ok(response::easy_response(StatusCode::BAD_REQUEST)?);
+    let bucket = match req.headers().get("Host") {
+        Some(header) => {
+            let host = header
+                .to_str()
+                .unwrap_or_default()
+                .split(':')
+                .collect::<Vec<&str>>()[0];
+
+            if host.is_empty() {
+                return Ok(response::easy_response(StatusCode::BAD_REQUEST)?);
+            }
+
+            host
+        }
+        None => return Ok(response::easy_response(StatusCode::BAD_REQUEST)?),
     };
 
     let mut path = req.uri().path().to_string();
