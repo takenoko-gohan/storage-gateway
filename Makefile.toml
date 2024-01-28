@@ -50,6 +50,13 @@ script = [
     "cp target/${CARGO_MAKE_RUST_TARGET_ARCH}-unknown-linux-musl/debug/storage-gateway target/debug/storage-gateway",
 ]
 
+[tasks.test-bin-build.windows]
+install_crate = "cargo-zigbuild"
+script = [
+    "cargo zigbuild --target  ${CARGO_MAKE_RUST_TARGET_ARCH}-unknown-linux-musl --features __tests",
+    "copy target/${CARGO_MAKE_RUST_TARGET_ARCH}-unknown-linux-musl/debug/storage-gateway target/debug/storage-gateway",
+]
+
 [tasks.test-container-build]
 dependencies = ["test-bin-build"]
 command = "docker"
