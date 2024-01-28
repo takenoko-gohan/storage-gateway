@@ -24,19 +24,19 @@ pub async fn gateway_route<T>(
 where
     T: S3 + Send + Sync + 'static,
 {
-    let bucket = match req.headers().get("Host") {
+    let host = match req.headers().get("Host") {
         Some(header) => {
-            let host = header
+            let value = header
                 .to_str()
                 .unwrap_or_default()
                 .split(':')
                 .collect::<Vec<&str>>()[0];
 
-            if host.is_empty() {
+            if value.is_empty() {
                 return Ok(response::easy_response(StatusCode::BAD_REQUEST)?);
             }
 
-            host
+            value
         }
         None => return Ok(response::easy_response(StatusCode::BAD_REQUEST)?),
     };
@@ -64,7 +64,7 @@ where
             &s3_client,
             no_such_key_redirect_object,
             self_account_id,
-            bucket,
+            host,
             key,
         )
         .await?),
