@@ -21,8 +21,6 @@ jobs:
 
       - name: Cache
         uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: ci
 
       - name: Check formatting
         run: cargo fmt --all --check
@@ -45,7 +43,7 @@ jobs:
       - name: Cache
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: ci
+          shared-key: test
 
       - name: Install Cargo tools
         uses: taiki-e/install-action@v2
@@ -80,7 +78,7 @@ jobs:
       - name: Cache
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: ci
+          shared-key: test
 
       - name: Install Cargo tools
         uses: taiki-e/install-action@v2
