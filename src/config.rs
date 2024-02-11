@@ -16,7 +16,7 @@ pub struct AppConfig {
 }
 
 fn default_gateway_port() -> u16 {
-    80
+    8000
 }
 
 fn default_management_port() -> u16 {

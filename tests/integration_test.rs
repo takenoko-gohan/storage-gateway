@@ -20,7 +20,7 @@ async fn test_default() {
     let container = docker.run(sheared::TestImage::default());
     let client = sheared::HttpClient::new(format!(
         "http://localhost:{}",
-        container.get_host_port_ipv4(80)
+        container.get_host_port_ipv4(8000)
     ));
 
     let root_resp = client.get("foo.example.com", "").await;
@@ -65,7 +65,7 @@ async fn test_root_object() {
         docker.run(sheared::TestImage::default().with_env_var("GW_ROOT_OBJECT", "index.html"));
     let client = sheared::HttpClient::new(format!(
         "http://localhost:{}",
-        container.get_host_port_ipv4(80)
+        container.get_host_port_ipv4(8000)
     ));
 
     let root_resp = client.get("foo.example.com", "").await;
@@ -85,7 +85,7 @@ async fn test_subdir_root_object() {
         .run(sheared::TestImage::default().with_env_var("GW_SUBDIR_ROOT_OBJECT", "index.html"));
     let client = sheared::HttpClient::new(format!(
         "http://localhost:{}",
-        container.get_host_port_ipv4(80)
+        container.get_host_port_ipv4(8000)
     ));
 
     let subdir_resp = client.get("foo.example.com", SUBDIR_PATH).await;
@@ -106,7 +106,7 @@ async fn test_no_such_key_redirect_object() {
     );
     let client = sheared::HttpClient::new(format!(
         "http://localhost:{}",
-        container.get_host_port_ipv4(80)
+        container.get_host_port_ipv4(8000)
     ));
 
     let redirect_resp = client.get("foo.example.com", REDIRECT_PATH).await;
@@ -126,7 +126,7 @@ async fn test_allow_cross_account() {
         docker.run(sheared::TestImage::default().with_env_var("GW_ALLOW_CROSS_ACCOUNT", "true"));
     let client = sheared::HttpClient::new(format!(
         "http://localhost:{}",
-        container.get_host_port_ipv4(80)
+        container.get_host_port_ipv4(8000)
     ));
 
     let cross_account_resp = client.get("foobar.example.com", INDEX_PATH).await;
@@ -145,7 +145,7 @@ async fn test_host_header_empty() {
     let container = docker.run(sheared::TestImage::default());
     let client = sheared::HttpClient::new(format!(
         "http://localhost:{}",
-        container.get_host_port_ipv4(80)
+        container.get_host_port_ipv4(8000)
     ));
 
     let root_resp = client.get("", INDEX_PATH).await;
@@ -162,7 +162,7 @@ async fn test_allow_domains() {
     );
     let client = sheared::HttpClient::new(format!(
         "http://localhost:{}",
-        container.get_host_port_ipv4(80)
+        container.get_host_port_ipv4(8000)
     ));
 
     let foo_resp = client.get("foo.example.com", INDEX_PATH).await;

@@ -22,7 +22,7 @@ storage-gateway must allow the following actions for the S3 buckets it accesses.
 | GW_SUBDIR_ROOT_OBJECT          | The object to return when a subdirectory is requested          | no       |         |
 | GW_NO_SUCH_KEY_REDIRECT_OBJECT | The object to return when a key is not found                   | no       |         |
 | GW_ALLOW_CROSS_ACCOUNT         | Allow cross account access                                     | no       | false   |
-| GW_GATEWAY_PORT                | The port to run the gateway on                                 | no       | 80      |
+| GW_GATEWAY_PORT                | The port to run the gateway on                                 | no       | 8000    |
 | GW_MANAGEMENT_PORT             | The port to run the management server on                       | no       | 8080    |
 
 ## Access S3 buckets of other AWS accounts

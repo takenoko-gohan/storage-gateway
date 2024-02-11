@@ -17,6 +17,6 @@ FROM gcr.io/distroless/static-debian12:nonroot
 
 COPY --from=prepare /tmp/storage-gateway /usr/local/bin/storage-gateway
 
-EXPOSE 80 8080
+EXPOSE 8000 8080
 
 ENTRYPOINT ["/usr/local/bin/storage-gateway"]
