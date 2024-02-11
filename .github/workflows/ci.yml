@@ -60,7 +60,7 @@ jobs:
       localstack:
         image: localstack/localstack:stable
         env:
-          SERVICES: s3
+          SERVICES: s3,sts
         ports:
           - "4566:4566"
     steps:
