@@ -69,7 +69,7 @@ where
                 "tests",
             )))
             .region(Region::new("us-east-1"))
-            .endpoint_url("http://host.docker.internal:4566")
+            .endpoint_url("http://172.17.0.1:4566")
             .behavior_version(BehaviorVersion::latest())
             .build();
 
