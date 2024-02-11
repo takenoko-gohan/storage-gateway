@@ -43,22 +43,22 @@ run_task = { name = [
     "localstack-teardown",
 ], fork = true }
 
-[tasks.test-bin-build]
+[tasks.test-build]
 install_crate = "cargo-zigbuild"
 script = [
-    "cargo zigbuild --target ${CARGO_MAKE_RUST_TARGET_ARCH}-unknown-linux-musl --features __tests",
-    "cp target/${CARGO_MAKE_RUST_TARGET_ARCH}-unknown-linux-musl/debug/storage-gateway target/debug/storage-gateway",
+    "cargo zigbuild --target ${CARGO_MAKE_RUST_TARGET_ARCH}-unknown-linux-gnu --features __tests",
+    "cp target/${CARGO_MAKE_RUST_TARGET_ARCH}-unknown-linux-gnu/debug/storage-gateway target/debug/storage-gateway",
 ]
 
-[tasks.test-bin-build.windows]
+[tasks.test-build.windows]
 install_crate = "cargo-zigbuild"
 script = [
-    "cargo zigbuild --target x86_64-unknown-linux-musl --features __tests",
-    "copy .\\target\\x86_64-unknown-linux-musl\\debug\\storage-gateway .\\target\\debug\\storage-gateway",
+    "cargo zigbuild --target x86_64-unknown-linux-gnu --features __tests",
+    "copy .\\target\\x86_64-unknown-linux-gnu\\debug\\storage-gateway .\\target\\debug\\storage-gateway",
 ]
 
 [tasks.test-container-build]
-dependencies = ["test-bin-build"]
+dependencies = ["test-build"]
 command = "docker"
 args = ["build", "-t", "test-storage-gateway", "-f", "test.Dockerfile", "."]
 
@@ -87,10 +87,10 @@ command = "cargo"
 install_crate = "cargo-zigbuild"
 args = ["zigbuild", "--target", "x86_64-unknown-linux-musl", "--release"]
 
-[tasks.container-build]
+[tasks.container-build-and-push]
 dependencies = ["aarch64-build", "x86_64-build"]
 script = [
     "docker buildx create --use --name builder",
-    "docker buildx build --platform linux/arm64,linux/amd64 -t storage-gateway -f release.Dockerfile .",
+    "docker buildx build --push --platform linux/arm64,linux/amd64 -t ghcr.io/takenoko-gohan/storage-gateway:v${CARGO_MAKE_CRATE_VERSION} -t ghcr.io/takenoko-gohan/storage-gateway:latest -f release.Dockerfile .",
     "docker buildx rm builder",
 ]

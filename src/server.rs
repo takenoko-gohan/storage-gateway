@@ -69,13 +69,12 @@ where
                 "tests",
             )))
             .region(Region::new("us-east-1"))
-            .endpoint_url("http://host.docker.internal:4566")
+            .endpoint_url("http://172.17.0.1:4566")
             .behavior_version(BehaviorVersion::latest())
             .build();
 
         let self_account_id = if !input.allow_cross_account {
-            let sts_client =
-                aws_sdk_sts::Client::from_conf(aws_sdk_sts::Config::from(&aws_config));
+            let sts_client = aws_sdk_sts::Client::from_conf(aws_sdk_sts::Config::from(&aws_config));
             let resp = sts_client.get_caller_identity().send().await?;
             resp.account
         } else {
