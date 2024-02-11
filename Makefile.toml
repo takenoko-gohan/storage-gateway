@@ -87,10 +87,10 @@ command = "cargo"
 install_crate = "cargo-zigbuild"
 args = ["zigbuild", "--target", "x86_64-unknown-linux-musl", "--release"]
 
-[tasks.container-build]
+[tasks.container-build-and-push]
 dependencies = ["aarch64-build", "x86_64-build"]
 script = [
     "docker buildx create --use --name builder",
-    "docker buildx build --platform linux/arm64,linux/amd64 -t storage-gateway -f release.Dockerfile .",
+    "docker buildx build --push --platform linux/arm64,linux/amd64 -t ghcr.io/takenoko-gohan/storage-gateway:${CARGO_MAKE_CRATE_VERSION} -f release.Dockerfile .",
     "docker buildx rm builder",
 ]
