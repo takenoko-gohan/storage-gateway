@@ -97,7 +97,9 @@ fn is_allow_domain(allow_domains: Vec<String>, domain: &str) -> Result<bool, reg
     for domain in allow_domains.iter().filter(|domain| re.is_match(domain)) {
         let domain = domain.replace('*', r"([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*)");
         let domain = domain.replace('.', r"\.");
-        if let Ok(re) = Regex::new(&format!("^{}$", domain)) { domain_regex.push(re) };
+        if let Ok(re) = Regex::new(&format!("^{}$", domain)) {
+            domain_regex.push(re)
+        };
     }
 
     Ok(domain_regex.iter().any(|re| re.is_match(domain)))
@@ -112,7 +114,10 @@ mod tests {
     #[test_case(vec!["*.example.com"], "foo.example.com"; "wildcard match")]
     #[test_case(vec!["*.bar.example.com"], "foo.bar.example.com"; "wildcard match with subdomain")]
     fn test_is_allow_domain_true(allow_domains: Vec<&str>, domain: &str) {
-        let allow_domains = allow_domains.iter().map(|domain| domain.to_string()).collect::<Vec<String>>();
+        let allow_domains = allow_domains
+            .iter()
+            .map(|domain| domain.to_string())
+            .collect::<Vec<String>>();
         assert!(is_allow_domain(allow_domains, domain).unwrap());
     }
 
@@ -121,7 +126,10 @@ mod tests {
     #[test_case(vec!["*.example.com"], "foo.bar.example.net"; "wildcard match with nested subdomain")]
     #[test_case(vec!["*.example.com"], "example.com"; "wildcard match with root domain")]
     fn test_is_allow_domain_false(allow_domains: Vec<&str>, domain: &str) {
-        let allow_domains = allow_domains.iter().map(|domain| domain.to_string()).collect::<Vec<String>>();
+        let allow_domains = allow_domains
+            .iter()
+            .map(|domain| domain.to_string())
+            .collect::<Vec<String>>();
         assert!(!is_allow_domain(allow_domains, domain).unwrap());
     }
 
@@ -129,7 +137,10 @@ mod tests {
     #[test_case(vec!["*.*.example.com"], "foo.bar.example.com"; "invalid wildcard match with nested subdomain")]
     #[test_case(vec!["hoge.example.*"], "foo.example.net"; "invalid wildcard match with top level domain")]
     fn test_is_allow_domain_invalid(allow_domains: Vec<&str>, domain: &str) {
-        let allow_domains = allow_domains.iter().map(|domain| domain.to_string()).collect::<Vec<String>>();
+        let allow_domains = allow_domains
+            .iter()
+            .map(|domain| domain.to_string())
+            .collect::<Vec<String>>();
         assert!(!is_allow_domain(allow_domains, domain).unwrap());
     }
 }

@@ -74,8 +74,7 @@ where
             .build();
 
         let self_account_id = if !input.allow_cross_account {
-            let sts_client =
-                aws_sdk_sts::Client::from_conf(aws_sdk_sts::Config::from(&aws_config));
+            let sts_client = aws_sdk_sts::Client::from_conf(aws_sdk_sts::Config::from(&aws_config));
             let resp = sts_client.get_caller_identity().send().await?;
             resp.account
         } else {

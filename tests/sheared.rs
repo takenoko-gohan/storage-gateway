@@ -37,11 +37,12 @@ impl Image for TestImage {
 impl Default for TestImage {
     fn default() -> Self {
         let mut env_vars = HashMap::new();
-        env_vars.insert("GW_ALLOW_DOMAINS".to_string(), "*.example.com,*.example.net".to_string());
+        env_vars.insert(
+            "GW_ALLOW_DOMAINS".to_string(),
+            "*.example.com,*.example.net".to_string(),
+        );
 
-        Self {
-            env_vars,
-        }
+        Self { env_vars }
     }
 }
 
