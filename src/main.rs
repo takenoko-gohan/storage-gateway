@@ -1,5 +1,6 @@
 use futures_util::future::try_join;
 use std::net::SocketAddr;
+use std::process::exit;
 
 mod config;
 mod handler;
@@ -13,7 +14,12 @@ type Error = Box<dyn std::error::Error + Send + Sync>;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    tracing_subscriber::fmt().init();
+    tracing_subscriber::fmt()
+        .json()
+        .with_max_level(tracing::Level::INFO)
+        .flatten_event(true)
+        .with_ansi(false)
+        .init();
 
     let config = config::AppConfig::new();
     tracing::info!("application config: {:?}", config);
@@ -30,7 +36,10 @@ async fn main() -> Result<(), Error> {
         .addr(SocketAddr::from(([0, 0, 0, 0], config.management_port)))
         .build();
 
-    try_join(gateway, management).await?;
+    if let Err(e) = try_join(gateway, management).await {
+        tracing::error!("failed to start server: {:?}", e);
+        exit(1);
+    };
 
     Ok(())
 }

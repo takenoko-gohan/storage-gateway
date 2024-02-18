@@ -25,6 +25,12 @@ storage-gateway must allow the following actions for the S3 buckets it accesses.
 | GW_GATEWAY_PORT                | The port to run the gateway on                                 | no       | 8000    |
 | GW_MANAGEMENT_PORT             | The port to run the management server on                       | no       | 8080    |
 
+## Management server paths
+
+| Path    | Method | Description                                  |
+|---------|--------|----------------------------------------------|
+| /health | GET    | Health check. Always return status code 200. |
+
 ## Access S3 buckets of other AWS accounts
 
 To access S3 buckets of other AWS accounts, you must set the `GW_ALLOW_CROSS_ACCOUNT` environment variable to `true`.  
