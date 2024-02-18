@@ -15,15 +15,15 @@ storage-gateway must allow the following actions for the S3 buckets it accesses.
 
 ## Environment variables
 
-| Variable                       | Description                                                    | Required | Default |
-|--------------------------------|----------------------------------------------------------------|----------|---------|
-| GW_ALLOW_DOMAINS               | Comma separated list of domains to allow access to the gateway | yes      |         |
-| GW_ROOT_OBJECT                 | The object to return when the root path is requested           | no       |         |
-| GW_SUBDIR_ROOT_OBJECT          | The object to return when a subdirectory is requested          | no       |         |
-| GW_NO_SUCH_KEY_REDIRECT_OBJECT | The object to return when a key is not found                   | no       |         |
-| GW_ALLOW_CROSS_ACCOUNT         | Allow cross account access                                     | no       | false   |
-| GW_GATEWAY_PORT                | The port to run the gateway on                                 | no       | 8000    |
-| GW_MANAGEMENT_PORT             | The port to run the management server on                       | no       | 8080    |
+| Variable                       | Description                                                                                           | Required | Default |
+|--------------------------------|-------------------------------------------------------------------------------------------------------|----------|---------|
+| GW_ALLOW_DOMAINS               | Comma separated list of domains to allow access to the gateway.<br>e.g. *.example.com,foo.example.net | yes      |         |
+| GW_ROOT_OBJECT                 | The object to return when the root path is requested.<br>e.g. index.html                              | no       |         |
+| GW_SUBDIR_ROOT_OBJECT          | The object to return when a subdirectory is requested.<br>e.g. index.html                             | no       |         |
+| GW_NO_SUCH_KEY_REDIRECT_OBJECT | The object to return when a key is not found.<br>e.g. index.html                                      | no       |         |
+| GW_ALLOW_CROSS_ACCOUNT         | Allow cross account access                                                                            | no       | false   |
+| GW_GATEWAY_PORT                | The port to run the gateway on                                                                        | no       | 8000    |
+| GW_MANAGEMENT_PORT             | The port to run the management server on                                                              | no       | 8080    |
 
 ## Management server paths
 
