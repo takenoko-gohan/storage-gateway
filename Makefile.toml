@@ -46,14 +46,14 @@ run_task = { name = [
 [tasks.test-build]
 install_crate = "cargo-zigbuild"
 script = [
-    "cargo zigbuild --target ${CARGO_MAKE_RUST_TARGET_ARCH}-unknown-linux-gnu --features __tests",
+    "cargo auditable zigbuild --target ${CARGO_MAKE_RUST_TARGET_ARCH}-unknown-linux-gnu --features __tests",
     "cp target/${CARGO_MAKE_RUST_TARGET_ARCH}-unknown-linux-gnu/debug/storage-gateway target/debug/storage-gateway",
 ]
 
 [tasks.test-build.windows]
 install_crate = "cargo-zigbuild"
 script = [
-    "cargo zigbuild --target x86_64-unknown-linux-gnu --features __tests",
+    "cargo auditable zigbuild --target x86_64-unknown-linux-gnu --features __tests",
     "copy .\\target\\x86_64-unknown-linux-gnu\\debug\\storage-gateway .\\target\\debug\\storage-gateway",
 ]
 
