@@ -1,4 +1,4 @@
-name: CD
+name: Release container image
 
 on:
   workflow_dispatch:
@@ -35,7 +35,7 @@ jobs:
       - name: Install Cargo tools
         uses: taiki-e/install-action@v2
         with:
-          tool: cargo-make,cargo-zigbuild
+          tool: cargo-make,cargo-zigbuild,cargo-auditable
 
       - name: Docker login
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u takenoko-gohan --password-stdin
