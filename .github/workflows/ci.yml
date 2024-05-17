@@ -83,7 +83,7 @@ jobs:
       - name: Install Cargo tools
         uses: taiki-e/install-action@v2
         with:
-          tool: cargo-make,cargo-zigbuild
+          tool: cargo-make,cargo-zigbuild,cargo-auditable
 
       - name: Setup localstack
         run: cargo make create-bucket
