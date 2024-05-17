@@ -8,7 +8,7 @@ permissions:
   packages: write
 
 jobs:
-  cd:
+  release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -22,7 +22,7 @@ jobs:
       - name: Setup Zig
         uses: goto-bus-stop/setup-zig@v2
         with:
-          version: 0.11.0
+          version: 0.12.0
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
