@@ -80,12 +80,12 @@ run_task = { name = [
 [tasks.aarch64-build]
 command = "cargo"
 install_crate = "cargo-zigbuild"
-args = ["zigbuild", "--target", "aarch64-unknown-linux-musl", "--release"]
+args = ["auditable", "zigbuild", "--target", "aarch64-unknown-linux-musl", "--release"]
 
 [tasks.x86_64-build]
 command = "cargo"
 install_crate = "cargo-zigbuild"
-args = ["zigbuild", "--target", "x86_64-unknown-linux-musl", "--release"]
+args = ["auditable", "zigbuild", "--target", "x86_64-unknown-linux-musl", "--release"]
 
 [tasks.container-build-and-push]
 dependencies = ["aarch64-build", "x86_64-build"]
